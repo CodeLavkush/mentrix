@@ -1,0 +1,36 @@
+gitignore
+# Dependencies
+node_modules
+
+# Build output
+dist
+build
+coverage
+
+# Vite
+.vite
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Lock files
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Logs
+*.log
+
+# Generated files
+*.min.js
+*.min.css
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,59 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+build
+coverage
+
+# Environment variables
+.env
+.env.*
+!.env.sample
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime files
+*.pid
+*.seed
+*.pid.lock
+
+# Cache
+.cache
+.tmp
+temp
+tmp
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Prisma
+prisma/generated
+
+# Generated code
+src/generated
+
+# Uploads
+uploads/
+
+# Docker
+docker-data/
+
+# Testing
+.nyc_output
+
+# Misc
+*.tsbuildinfo
