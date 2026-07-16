@@ -1,0 +1,23 @@
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum UploadStatus {
+  UPLOADING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum Sender {
+  AI
+  USER
+}

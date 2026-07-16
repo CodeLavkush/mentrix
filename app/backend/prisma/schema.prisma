@@ -1,0 +1,202 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                 String              @id @default(uuid())
+  username           String              @unique @db.VarChar(100)
+  gender             Gender?             @default(MALE)
+  age                Int?                @db.SmallInt
+  email              String              @unique @db.VarChar(255)
+  avatar             String?             @db.VarChar(500)
+  password           String              @db.VarChar(255)
+  isEmailVerified    Boolean             @default(false) @map("is_email_verified")
+  refreshToken       String?             @map("refresh_token") @db.Text
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  academicDetails    AcademicDetails?
+  documents          Documents[]
+  quizzes            Quizzes[]
+  notes              Notes[]
+  whiteboards        Whiteboards[]
+  chatMessages       ChatMessages[]
+  quizAttempts       QuizAttempts[]
+  flashcardSets      FlashcardSets[]
+  flashcardsProgress FlashcardProgress[]
+
+  @@map("user")
+}
+
+model AcademicDetails {
+  id             String   @id @default(uuid())
+  userId         String   @unique @map("user_id")
+  user           User     @relation(fields: [userId], references: [id])
+  collegeName    String?  @map("college_name") @db.VarChar(255)
+  universityName String?  @map("university_name") @db.VarChar(255)
+  course         String?  @db.VarChar(100)
+  branch         String?  @db.VarChar(100)
+  year           Int?     @db.SmallInt
+  semester       Int?     @db.SmallInt
+  rollNumber     Int?     @map("roll_number") @db.SmallInt
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("academic_details")
+}
+
+model Documents {
+  id           String         @id @default(uuid())
+  userId       String         @unique @map("user_id")
+  user         User           @relation(fields: [userId], references: [id])
+  fileName     String         @map("file_name") @db.VarChar(255)
+  fileType     String         @map("file_type") @db.VarChar(20)
+  fileSize     BigInt         @map("file_size")
+  storagePath  String         @map("storage_path") @db.VarChar(500)
+  uploadStatus UploadStatus   @default(UPLOADING) @map("upload_status")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  quizzes      Quizzes[]
+  notes        Notes[]
+  chatMessages ChatMessages[]
+
+  @@map("documents")
+}
+
+model Quizzes {
+  id             String          @id @default(uuid())
+  userId         String          @unique @map("user_id")
+  user           User            @relation(fields: [userId], references: [id])
+  documentId     String          @unique @map("document_id")
+  documents      Documents       @relation(fields: [documentId], references: [id])
+  quizTitle      String          @map("quiz_title") @db.VarChar(255)
+  difficulty     Difficulty      @default(EASY)
+  totalQuestions Int             @map("total_questions")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  quizQuestions  QuizQuestions[]
+  quizAttempts   QuizAttempts[]
+
+  @@map("quizzes")
+}
+
+model QuizQuestions {
+  id            String  @id @default(uuid())
+  quizId        String  @unique @map("quiz_id")
+  quiz          Quizzes @relation(fields: [quizId], references: [id])
+  question      String  @db.Text
+  optionA       String  @db.Text
+  optionB       String  @db.Text
+  optionC       String  @db.Text
+  optionD       String  @db.Text
+  correctOption String  @db.Char(1)
+  explanation   String? @db.Text
+
+  @@map("quiz_questions")
+}
+
+model Notes {
+  id         String    @id @default(uuid())
+  userId     String    @unique @map("user_id")
+  user       User      @relation(fields: [userId], references: [id])
+  documentId String    @unique @map("document_id")
+  documents  Documents @relation(fields: [documentId], references: [id])
+  title      String    @db.VarChar(255)
+  content    String    @db.Text
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@map("notes")
+}
+
+model Whiteboards {
+  id          String   @id @default(uuid())
+  userId      String   @unique @map("user_id")
+  user        User     @relation(fields: [userId], references: [id])
+  title       String   @db.VarChar(255)
+  drawingData Json     @map("drawing_data") @db.JsonB
+  thumbnail   String?  @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("whiteboards")
+}
+
+model ChatMessages {
+  id         String    @id @default(uuid())
+  userId     String    @unique @map("user_id")
+  user       User      @relation(fields: [userId], references: [id])
+  documentId String    @unique @map("document_id")
+  documents  Documents @relation(fields: [documentId], references: [id])
+  sender     Sender    @default(USER)
+  message    String    @db.Text
+  timestamp  DateTime  @default(now())
+
+  @@map("chat_messages")
+}
+
+model QuizAttempts {
+  id            String         @id @default(uuid())
+  userId        String         @unique @map("user_id")
+  user          User           @relation(fields: [userId], references: [id])
+  quizId        String         @unique @map("quiz_id")
+  quiz          Quizzes        @relation(fields: [quizId], references: [id])
+  score         Int            @default(0)
+  totalMarks    Int            @default(0) @map("total_marks")
+  percentage    Decimal        @default(0.00) @db.Decimal(5, 2)
+  timeTaken     Int            @default(0) @map("time_taken")
+  attemptedAt   DateTime       @default(now()) @map("attempted_at")
+  flashcardSets FlashcardSets?
+
+  @@map("quiz_attempts")
+}
+
+model FlashcardSets {
+  id            String       @id @default(uuid())
+  userId        String       @unique @map("user_id")
+  user          User         @relation(fields: [userId], references: [id])
+  quizAttemptId String       @unique @map("quiz_attempt_id")
+  quizAttempt   QuizAttempts @relation(fields: [quizAttemptId], references: [id])
+  title         String       @db.VarChar(255)
+  topic         String       @db.VarChar(255)
+  totalCards    Int          @default(0) @map("total_cards")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  flashcards    Flashcards[]
+
+  @@map("flashcard_sets")
+}
+
+model Flashcards {
+  id                String              @id @default(uuid())
+  flashcardSetId    String              @unique @map("flashcard_set_id")
+  flashcardSet      FlashcardSets       @relation(fields: [flashcardSetId], references: [id])
+  frontText         String              @map("front_text") @db.Text
+  backText          String              @map("back_text") @db.Text
+  difficulty        Difficulty          @default(EASY)
+  createdAt         DateTime            @default(now()) @map("created_at")
+  flashcardProgress FlashcardProgress[]
+
+  @@map("flashcards")
+}
+
+model FlashcardProgress {
+  id           String     @id @default(uuid())
+  userId       String     @unique @map("user_id")
+  user         User       @relation(fields: [userId], references: [id])
+  flashcardId  String     @unique @map("flashcard_id")
+  flashcard    Flashcards @relation(fields: [flashcardId], references: [id])
+  reviewCount  Int        @default(0) @map("review_count")
+  correctCount Int        @default(0) @map("correct_count")
+  lastReviewed DateTime?  @map("last_reviewed")
+  masteryLevel Decimal    @default(0.00) @map("mastery_level") @db.Decimal(5, 2)
+
+  @@map("flashcard_progress")
+}

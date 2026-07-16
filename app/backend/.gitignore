@@ -57,3 +57,4 @@ docker-data/
 
 # Misc
 *.tsbuildinfo
+/src/generated/prisma
