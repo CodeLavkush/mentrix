@@ -1,0 +1,17 @@
+openapi: 3.0.3
+
+info:
+  title: Mentrix API
+  version: 1.0.0
+  description: API documentation for Mentrix
+
+servers:
+  - url: http://localhost:4000/api/v1
+
+paths:
+  /:
+    get:
+      summary: Home endpoint
+      responses:
+        "200":
+          description: Success
