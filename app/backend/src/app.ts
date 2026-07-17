@@ -1,20 +1,47 @@
 import express from "express";
 import { httpLogger } from "./middlewares/logger.middleware.js";
-import type { Request, Response, Express } from 'express'
+import type { Express } from 'express'
 import { setupSwagger } from "./docs/swagger.js";
+import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser"
+import cors from 'cors'
 
 const app: Express = express();
 
+app.set("trust proxy", 1)
 
-app.use(httpLogger);
-app.use(express.json());
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 min
+    limit: 100, // max requests per IP
 
+    message: {
+        success: false,
+        message: "Too many requests, please try again later"
+    },
 
-
-setupSwagger(app);
-
-app.get('/', (req: Request, res: Response) => {
-    res.send("Hello World!")
+    standardHeaders: true,
+    legacyHeaders: false,
 })
+
+
+app.use(limiter)
+app.use(httpLogger);
+app.use(express.json({ limit: "16kb" }))
+app.use(express.urlencoded({ extended: true, limit: "16kb" }))
+app.use(express.static("public"))
+app.use(cookieParser())
+
+app.use(cors({
+    origin: process.env.CORS_ORIGIN?.split(","),
+    credentials: true,
+    methods: ["GET", "PUT", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["content-type", "authorization"],
+}))
+
+import healthCheckRouter from "./routes/healthcheck.route.js"
+
+setupSwagger(app); // swagger docs endpoint
+app.use("/api/v1/healthcheck", healthCheckRouter)
+
 
 export default app;
