@@ -1,5 +1,6 @@
 import Mailgen from "mailgen";
 import nodemailer from "nodemailer";
+import type { SendEmailOptions } from "../types/email/index.js";
 
 const mailGenerator = new Mailgen({
     theme: "default",
@@ -14,12 +15,6 @@ const transporter = nodemailer.createTransport({
     port: Number(process.env.SMTP_PORT || 1025),
     secure: false,
 });
-
-type SendEmailOptions = {
-    email: string;
-    subject: string;
-    mailgenContent: Mailgen.Content;
-};
 
 const sendEmail = async ({
     email,
