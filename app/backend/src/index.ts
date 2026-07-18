@@ -7,6 +7,7 @@ dotenv.config({
 import app from "./app.js";
 import { prisma } from "./db/prisma.js";
 import { logger } from "./utils/logger.js";
+import { ensureBucket } from "./services/storage.service.js";
 
 const PORT = Number(process.env.PORT) || 4000;
 
@@ -14,6 +15,7 @@ async function startServer() {
     try {
         // Connect to PostgreSQL
         await prisma.$connect();
+        await ensureBucket();
         logger.info("Connected to PostgreSQL");
 
         // Start Express server
