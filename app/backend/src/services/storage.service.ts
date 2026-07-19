@@ -1,6 +1,9 @@
 import { minioClient } from "../db/minio.js";
+import dotenv from "dotenv";
 
-const BUCKET_NAME = process.env.MINIO_BUCKET || "mentrix-bucket";
+dotenv.config();
+
+const BUCKET_NAME = process.env.MINIO_BUCKET!;
 
 export async function ensureBucket() {
     const exists = await minioClient.bucketExists(BUCKET_NAME);
@@ -16,7 +19,7 @@ export async function uploadFile(
     mimeType: string,
 ) {
     await minioClient.putObject(
-        "mentrix-bucket",
+        BUCKET_NAME,
         fileName,
         fileBuffer,
         fileBuffer.length,
@@ -26,4 +29,15 @@ export async function uploadFile(
     );
 
     return fileName;
+}
+
+export async function getFileUrl(
+    fileName: string,
+    expiry = 60 * 60,
+) {
+    return await minioClient.presignedGetObject(
+        BUCKET_NAME,
+        fileName,
+        expiry,
+    );
 }

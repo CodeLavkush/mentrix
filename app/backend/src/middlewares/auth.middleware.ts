@@ -33,11 +33,11 @@ export const verifyJWT: RequestHandler = asyncHandler(
                     id: true,
                     email: true,
                     username: true,
-                    fullName: true,
-                    avatar: true,
+                    avatarKey: true,
+                    gender: true,
+                    age: true,
                     createdAt: true,
                     updatedAt: true,
-                    // Exclude password, refreshToken, etc.
                 },
             });
 
