@@ -1,5 +1,6 @@
 import express from "express";
 import { httpLogger } from "./middlewares/logger.middleware.js";
+import { errorMiddleware } from "./middlewares/error.middlware.js";
 import type { Express } from 'express'
 import { setupSwagger } from "./docs/swagger.js";
 import rateLimit from "express-rate-limit";
@@ -44,5 +45,7 @@ import authRouter from "./routes/auth.route.js"
 setupSwagger(app); // swagger docs endpoint
 app.use("/api/v1/healthcheck", healthCheckRouter)
 app.use("/api/v1/auth", authRouter)
+
+app.use(errorMiddleware)
 
 export default app;

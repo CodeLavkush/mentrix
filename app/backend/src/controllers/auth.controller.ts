@@ -19,7 +19,7 @@ function otpKey(email: string): string {
 function generateOTP(): { otp: string, otpExpiry: number } {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    const otpExpiry = Date.now() + 60 * 1000; // 1 minute
+    const otpExpiry = 60 // 1 minute
 
     return { otp, otpExpiry };
 };
@@ -412,61 +412,65 @@ const refreshAccessToken: RequestHandler = asyncHandler(async (req, res) => {
         throw new ApiError(401, "Unauthorized Access")
     }
 
+    try {
 
-    const decodedToken: any = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET!)
+        const decodedToken: any = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET!)
 
-    const user = await prisma.user.findFirst({
-        where: {
-            id: decodedToken?.id
-        },
-        select: {
-            id: true,
-            username: true,
-            email: true,
-            gender: true,
-            age: true,
-            isEmailVerified: true,
-            refreshToken: true,
-        }
-    })
-
-    if (!user) {
-        throw new ApiError(401, "Invalid Refresh Token")
-    }
-
-    if (incomingRefreshToken !== user.refreshToken) {
-        throw new ApiError(401, "Refresh token is expired")
-    }
-
-    const options = {
-        httpOnly: true,
-        secure: true
-    }
-
-    const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshTokens(user)
-
-    await prisma.user.update({
-        where: {
-            id: user.id
-        },
-        data: {
-            refreshToken: newRefreshToken
-        }
-    })
-
-
-    return res
-        .status(200)
-        .cookie("accessToken", accessToken, options)
-        .cookie("refreshToken", newRefreshToken, options)
-        .json(new ApiResponse(
-            200,
-            {
-                accessToken,
-                refreshToken: newRefreshToken,
+        const user = await prisma.user.findFirst({
+            where: {
+                id: decodedToken?.id
             },
-            "Access Token refreshed"
-        ))
+            select: {
+                id: true,
+                username: true,
+                email: true,
+                gender: true,
+                age: true,
+                isEmailVerified: true,
+                refreshToken: true,
+            }
+        })
+
+        if (!user) {
+            throw new ApiError(401, "Invalid Refresh Token")
+        }
+
+        if (incomingRefreshToken !== user.refreshToken) {
+            throw new ApiError(401, "Refresh token is expired")
+        }
+
+        const options = {
+            httpOnly: true,
+            secure: true
+        }
+
+        const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshTokens(user)
+
+        await prisma.user.update({
+            where: {
+                id: user.id
+            },
+            data: {
+                refreshToken: newRefreshToken
+            }
+        })
+
+
+        return res
+            .status(200)
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", newRefreshToken, options)
+            .json(new ApiResponse(
+                200,
+                {
+                    accessToken,
+                    refreshToken: newRefreshToken,
+                },
+                "Access Token refreshed"
+            ))
+    } catch (error) {
+        throw new ApiError(401, "Invalid refresh Token")
+    }
 })
 
 export {
