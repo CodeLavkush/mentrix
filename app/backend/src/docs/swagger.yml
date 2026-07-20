@@ -2,16 +2,317 @@ openapi: 3.0.3
 
 info:
   title: Mentrix API
+  description: Authentication APIs for the Mentrix application
   version: 1.0.0
-  description: API documentation for Mentrix
 
 servers:
   - url: http://localhost:4000/api/v1
+    description: Local development server
+
+tags:
+  - name: Authentication
+    description: User authentication and account verification
 
 paths:
-  /:
-    get:
-      summary: Home endpoint
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Creates a new user account and sends an OTP to the user's email for verification.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - username
+                - gender
+                - age
+                - email
+                - password
+              properties:
+                username:
+                  type: string
+                  example: john_doe
+                gender:
+                  type: string
+                  example: male
+                age:
+                  type: integer
+                  example: 25
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: Password@123
+                avatar:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                statusCode: 200
+                data:
+                  id: "clx123456789"
+                  username: john_doe
+                  gender: male
+                  age: 25
+                  email: john@example.com
+                  isEmailVerified: false
+                  avatarUrl: "https://example.com/avatar.jpg"
+                message: User registered successfully. Please check your email for the OTP to verify your account.
+        "409":
+          description: User already exists
+        "400":
+          description: Invalid request data
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: Authenticates a user and returns access and refresh tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            example:
+              email: john@example.com
+              password: Password@123
       responses:
         "200":
-          description: Success
+          description: User logged in successfully
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: accessToken=jwt-token; HttpOnly
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                statusCode: 200
+                data:
+                  user:
+                    id: "clx123456789"
+                    username: john_doe
+                    email: john@example.com
+                    gender: male
+                    age: 25
+                    isEmailVerified: true
+                  accessToken: "eyJhbGciOiJIUzI1NiIs..."
+                  refreshToken: "eyJhbGciOiJIUzI1NiIs..."
+                message: User logged in successfully
+        "400":
+          description: Email and password are required
+        "401":
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User logged out successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                statusCode: 200
+                data: {}
+                message: User logged out
+        "401":
+          description: Unauthorized
+
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                statusCode: 200
+                data:
+                  id: "clx123456789"
+                  username: john_doe
+                  email: john@example.com
+                  gender: male
+                  age: 25
+                  avatarKey: "users/avatars/avatar.jpg"
+                  avatarUrl: "https://example.com/avatar.jpg"
+                  isEmailVerified: true
+                  createdAt: "2026-07-20T10:00:00.000Z"
+                  updatedAt: "2026-07-20T10:00:00.000Z"
+                message: Current user fetched successfully
+        "401":
+          description: Unauthorized
+
+  /auth/verify-email:
+    post:
+      tags:
+        - Authentication
+      summary: Verify user email
+      description: Verifies the user's email using the OTP sent to their email address.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyEmailRequest"
+            example:
+              email: john@example.com
+              otp: "123456"
+      responses:
+        "200":
+          description: Email verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                statusCode: 200
+                data:
+                  id: "clx123456789"
+                  username: john_doe
+                  isEmailVerified: true
+                message: Email is Verified
+        "400":
+          description: Invalid, missing, or expired OTP
+        "404":
+          description: User does not exist
+
+  /auth/resend-verification:
+    post:
+      tags:
+        - Authentication
+      summary: Resend email verification OTP
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Verification email sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                statusCode: 200
+                data: {}
+                message: Mail has been sent to john@example.com
+        "401":
+          description: Unauthorized
+        "404":
+          description: User does not exist or email is already verified
+
+  /auth/refresh-token:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Generates a new access token and refresh token.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+                  example: eyJhbGciOiJIUzI1NiIs...
+      responses:
+        "200":
+          description: Access token refreshed successfully
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: accessToken=jwt-token; HttpOnly
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                statusCode: 200
+                data:
+                  accessToken: "eyJhbGciOiJIUzI1NiIs..."
+                  refreshToken: "eyJhbGciOiJIUzI1NiIs..."
+                message: Access Token refreshed
+        "401":
+          description: Unauthorized or invalid refresh token
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    VerifyEmailRequest:
+      type: object
+      required:
+        - email
+        - otp
+      properties:
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        otp:
+          type: string
+          minLength: 6
+          maxLength: 6
+          example: "123456"
+
+    ApiResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 200
+        data:
+          type: object
+        message:
+          type: string
+          example: Request successful
