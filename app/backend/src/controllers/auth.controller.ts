@@ -9,70 +9,9 @@ import { uploadFile, getFileUrl } from "../services/storage.service.js"
 import { redisClient } from "../db/redis.js"
 import { sendEmail, emailVerificationMailgenContent } from "../utils/mail.js"
 import jwt from "jsonwebtoken"
-import type { User } from "../types/user/index.js"
-import type { StringValue } from "ms"
+import { generateAccessAndRefreshTokens } from "../utils/generate-tokens.js"
+import { otpKey, generateOTP } from "../utils/generate-otp.js"
 
-function otpKey(email: string): string {
-    return `otp:${email}`
-}
-
-function generateOTP(): { otp: string, otpExpiry: number } {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    const otpExpiry = 60 // 1 minute
-
-    return { otp, otpExpiry };
-};
-
-function generateAccessToken(user: User): string {
-    return jwt.sign(
-        {
-            id: user.id,
-            username: user.username,
-        },
-        process.env.ACCESS_TOKEN_SECRET!,
-        {
-            expiresIn: process.env.ACCESS_TOKEN_EXPIRY as StringValue,
-        }
-    )
-}
-
-function generateRefreshToken(user: User): string {
-    return jwt.sign(
-        {
-            id: user.id,
-            username: user.username,
-        },
-        process.env.REFRESH_TOKEN_SECRET!,
-        {
-            expiresIn: process.env.REFRESH_TOKEN_EXPIRY as StringValue,
-        }
-    )
-}
-
-
-async function generateAccessAndRefreshTokens(user: User) {
-    try {
-        const accessToken = generateAccessToken(user)
-        const refreshToken = generateRefreshToken(user)
-
-        await prisma.user.update({
-            where: {
-                id: user.id,
-            },
-            data: {
-                refreshToken: refreshToken,
-            },
-        });
-
-        return { accessToken, refreshToken }
-    } catch (error) {
-        throw new ApiError(
-            500,
-            "Something went wrong while generating access token"
-        )
-    }
-}
 
 const registerUser: RequestHandler = asyncHandler(async (req, res) => {
     const { username, gender, age, email, password } = req.body
@@ -480,5 +419,5 @@ export {
     getCurrentUser,
     verifyEmail,
     resendEmailVerification,
-    refreshAccessToken
+    refreshAccessToken,
 }
