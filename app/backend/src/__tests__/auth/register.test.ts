@@ -1,167 +1,47 @@
 import request from "supertest";
 import { jest } from "@jest/globals";
-import { emailVerificationMailgenContent } from "../utils/mail.js";
-import { otpKey } from "../utils/generate-otp.js";
+
+import {
+    mockCreate,
+    mockFindFirst,
+    mockFindUnique,
+    setupPrismaMock,
+
+    mockHash,
+    setupBcryptMock,
+
+    mockRedisSet,
+    setupRedisMock,
+
+    mockGetFileUrl,
+    mockUploadFile,
+    setupStorageMock,
+
+    mockEmailVerificationMailgenContent,
+    mockSendEmail,
+    setupMailMock,
+
+    mockGenerateOTP,
+    setupOtpMock
+} from "../mocks/index.js"
 
 
-// ======================================================
-// TYPES
-// ======================================================
 
-type MockCreatedUser = {
-    id: string;
-    username: string;
-    gender: "MALE" | "FEMALE" | "OTHER" | null;
-    age: number | null;
-    email: string;
-    isEmailVerified: boolean;
-    avatarKey: string | null;
-};
+setupPrismaMock()
 
+setupBcryptMock()
 
-type MockCreatedUserWithoutAvatar = {
-    id: string;
-    username: string;
-    gender: "MALE" | "FEMALE" | "OTHER" | null;
-    age: number | null;
-    email: string;
-    isEmailVerified: boolean;
-};
+setupRedisMock()
+
+setupStorageMock()
+
+setupMailMock()
+
+setupOtpMock()
 
 
-// ======================================================
-// CREATE MOCK FUNCTIONS FIRST
-// ======================================================
+const { default: app } = await import("../../app.js");
 
-const mockFindFirst = jest.fn<
-    (args: unknown) => Promise<{ id: string } | null>
->();
-
-
-const mockCreate = jest.fn<
-    (args: unknown) => Promise<MockCreatedUser>
->();
-
-
-const mockFindUnique = jest.fn<
-    (args: unknown) => Promise<
-        MockCreatedUserWithoutAvatar | null
-    >
->();
-
-
-const mockHash = jest.fn<
-    (password: string, saltRounds: number) => Promise<string>
->();
-
-
-const mockRedisSet = jest.fn<
-    (...args: unknown[]) => Promise<unknown>
->();
-
-
-const mockUploadFile = jest.fn<
-    (
-        key: string,
-        buffer: Buffer,
-        mimetype: string
-    ) => Promise<void>
->();
-
-
-const mockGetFileUrl = jest.fn<
-    (key: string) => Promise<string>
->();
-
-
-const mockSendEmail = jest.fn<
-    (options: unknown) => Promise<void>
->();
-
-
-const mockGenerateOTP = jest.fn<
-    () => {
-        otp: string;
-        otpExpiry: number;
-    }
->();
-
-
-// ======================================================
-// MOCK MODULES
-// ======================================================
-
-jest.unstable_mockModule(
-    "../db/prisma.js",
-    () => ({
-        prisma: {
-            user: {
-                findFirst: mockFindFirst,
-                create: mockCreate,
-                findUnique: mockFindUnique,
-            },
-        },
-    })
-);
-
-
-jest.unstable_mockModule(
-    "bcrypt",
-    () => ({
-        default: {
-            hash: mockHash,
-        },
-    })
-);
-
-
-jest.unstable_mockModule(
-    "../db/redis.js",
-    () => ({
-        redisClient: {
-            set: mockRedisSet,
-        },
-    })
-);
-
-
-jest.unstable_mockModule(
-    "../services/storage.service.js",
-    () => ({
-        uploadFile: mockUploadFile,
-        getFileUrl: mockGetFileUrl,
-    })
-);
-
-
-jest.unstable_mockModule(
-    "../utils/mail.js",
-    () => ({
-        sendEmail: mockSendEmail,
-        emailVerificationMailgenContent,
-    })
-);
-
-
-jest.unstable_mockModule(
-    "../utils/generate-otp.js",
-    () => ({
-        generateOTP: mockGenerateOTP,
-        otpKey,
-    })
-);
-
-
-// ======================================================
-// IMPORT AFTER MOCKS
-// ======================================================
-
-const { default: app } = await import("../app.js");
-
-
-// ======================================================
-// TEST SUITE
-// ======================================================
 
 describe(
     "POST /api/v1/auth/register",
