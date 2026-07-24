@@ -158,8 +158,13 @@ const loginUser: RequestHandler = asyncHandler(async (req, res) => {
             gender: true,
             age: true,
             isEmailVerified: true,
+            avatarKey: true
         }
     })
+
+    const avatarUrl = loggedInUser!.avatarKey
+        ? await getFileUrl(loggedInUser!.avatarKey)
+        : null;
 
     const options: CookieOptions = {
         httpOnly: true,
@@ -174,9 +179,12 @@ const loginUser: RequestHandler = asyncHandler(async (req, res) => {
         .json(new ApiResponse(
             200,
             {
-                user: loggedInUser,
+                user: {
+                    ...loggedInUser,
+                    avatarUrl,
+                },
                 accessToken,
-                refreshToken
+                refreshToken,
             },
             "User logged in successfully"
         ))

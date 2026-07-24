@@ -181,8 +181,7 @@ describe(
                         username: "john",
                         gender: "MALE",
                         age: 20,
-                        email:
-                            "john@example.com",
+                        email: "john@example.com",
                         refreshToken: null,
                     });
 
@@ -250,6 +249,7 @@ describe(
                         gender: "MALE",
                         age: 20,
                         isEmailVerified: true,
+                        avatarUrl: null
                     },
 
                     accessToken:
