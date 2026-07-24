@@ -47,7 +47,34 @@ const loginValidator = () => {
     ]
 }
 
+const profileValidator = () => {
+    return [
+        body("collegeName")
+            .optional()
+            .isString(),
+        body("universityName")
+            .optional()
+            .isString(),
+        body("course")
+            .optional()
+            .isString(),
+        body("branch")
+            .optional()
+            .isString(),
+        body("year")
+            .optional()
+            .isNumeric(),
+        body("semester")
+            .optional()
+            .isNumeric(),
+        body("rollNumber")
+            .optional()
+            .isNumeric(),
+    ]
+}
+
 export {
     registerUserValidator,
-    loginValidator
+    loginValidator,
+    profileValidator
 }

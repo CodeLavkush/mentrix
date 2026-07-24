@@ -41,10 +41,12 @@ app.use(cors({
 
 import healthCheckRouter from "./routes/healthcheck.route.js"
 import authRouter from "./routes/auth.route.js"
+import profileRouter from "./routes/profile.route.js"
 
 setupSwagger(app); // swagger docs endpoint
 app.use("/api/v1/healthcheck", healthCheckRouter)
 app.use("/api/v1/auth", authRouter)
+app.use("/api/v1/profile", profileRouter)
 
 app.use(errorMiddleware)
 
