@@ -18,6 +18,12 @@ export const mockFindUnique: Mock<any> = jest.fn<
 
 export const mockUpdate: Mock<any> = jest.fn();
 
+export const mockAcademicDetailsFindFirst:
+    Mock<any> = jest.fn();
+
+export const mockAcademicDetailsCreate:
+    Mock<any> = jest.fn();
+
 export function setupPrismaMock() {
     jest.unstable_mockModule(
         "../../db/prisma.js",
@@ -28,6 +34,10 @@ export function setupPrismaMock() {
                     create: mockCreate,
                     findUnique: mockFindUnique,
                     update: mockUpdate,
+                },
+                academicDetails: {
+                    findFirst: mockAcademicDetailsFindFirst,
+                    create: mockAcademicDetailsCreate,
                 },
             },
         })
