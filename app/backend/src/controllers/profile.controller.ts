@@ -3,7 +3,6 @@ import { prisma } from '../db/prisma.js'
 import { asyncHandler } from "../utils/async-handler.js"
 import { ApiError } from "../utils/api-error.js"
 import { ApiResponse } from "../utils/api-response.js"
-import { uploadFile, getFileUrl } from "../services/storage.service.js"
 import type { RequestHandler } from "express"
 
 
@@ -102,7 +101,13 @@ const getProfile: RequestHandler = asyncHandler(async (req, res) => {
             year: true,
             semester: true,
             rollNumber: true,
-            userId: true
+            userId: true,
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                }
+            }
         }
     })
 
