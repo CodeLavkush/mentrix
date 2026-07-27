@@ -15,8 +15,11 @@ async function startServer() {
     try {
         // Connect to PostgreSQL
         await prisma.$connect();
-        await ensureBucket();
         logger.info("Connected to PostgreSQL");
+
+
+        await ensureBucket();
+        logger.info("Connected to MinIO")
 
         // Start Express server
         const server = app.listen(PORT, () => {
