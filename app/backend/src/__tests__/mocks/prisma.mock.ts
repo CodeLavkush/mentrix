@@ -24,6 +24,10 @@ export const mockAcademicDetailsFindFirst:
 export const mockAcademicDetailsCreate:
     Mock<any> = jest.fn();
 
+export const mockAcademicDetailsUpdate: Mock<any> = jest.fn<
+    (args: unknown) => Promise<{ id: string } | null>
+>();
+
 export function setupPrismaMock() {
     jest.unstable_mockModule(
         "../../db/prisma.js",
@@ -38,6 +42,7 @@ export function setupPrismaMock() {
                 academicDetails: {
                     findFirst: mockAcademicDetailsFindFirst,
                     create: mockAcademicDetailsCreate,
+                    update: mockAcademicDetailsUpdate,
                 },
             },
         })
