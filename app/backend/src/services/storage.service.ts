@@ -31,6 +31,13 @@ export async function uploadFile(
     return fileName;
 }
 
+export async function getFileMetadata(fileName: string) {
+    return await minioClient.statObject(
+        BUCKET_NAME,
+        fileName,
+    );
+}
+
 export async function getFileUrl(
     fileName: string,
     expiry = 60 * 60,

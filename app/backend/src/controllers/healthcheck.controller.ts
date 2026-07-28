@@ -1,7 +1,6 @@
 import { ApiResponse } from "../utils/api-response.js"
 import { asyncHandler } from "../utils/async-handler.js"
 import type { RequestHandler } from "express"
-import { uploadFile } from "../services/storage.service.js"
 
 const healthCheck: RequestHandler = asyncHandler(async (req, res) => {
     res
