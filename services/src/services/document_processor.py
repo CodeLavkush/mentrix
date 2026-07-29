@@ -1,117 +1,82 @@
+import tempfile
 from pathlib import Path
 
-from langchain_core.documents import Document
+import fitz
 
-from ..client.minio_client import download_file
-from ..services.ocr_service import ocr_pdf
-from ..services.pdf_service import is_scanned_pdf, load_pdf
-from ..utils.logger import logger
-
-
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+from clients.minio_client import minio_client
+from utils.logger import logger
+from .ocr_service import OCRService
 
 
 class DocumentProcessor:
-    """
-    Responsible for:
-        - Downloading PDFs from MinIO
-        - Detecting scanned vs digital PDFs
-        - Extracting document text
-    """
+    def __init__(self):
+        self.ocr_service = OCRService()
 
-    def __init__(
-        self,
-        document_id: str,
-        user_id: str,
-        storage_path: str,
-    ):
-        self.document_id = document_id
-        self.user_id = user_id
-        self.storage_path = storage_path
-
-        # Preserve the original extension (.pdf, .docx, etc.)
-        extension = Path(storage_path).suffix or ".pdf"
-
-        self.local_pdf = UPLOAD_DIR / f"{document_id}{extension}"
-
-    def download(self) -> Path:
+    def process_document(self, storage_path: str) -> str:
         """
-        Download the document from MinIO.
+        Downloads a document from MinIO and extracts its text.
         """
 
-        logger.info(
-            "Downloading document %s from MinIO...",
-            self.document_id,
-        )
+        logger.info(f"Processing document: {storage_path}")
 
-        download_file(
-            object_name=self.storage_path,
-            destination=str(self.local_pdf),
-        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            pdf_path = Path(temp_dir) / "document.pdf"
 
-        logger.info(
-            "Document downloaded successfully: %s",
-            self.local_pdf,
-        )
+            minio_client.download_file(
+                object_name=storage_path,
+                destination=str(pdf_path),
+            )
 
-        return self.local_pdf
+            if self._is_scanned_pdf(pdf_path):
+                logger.info("Scanned PDF detected. Running OCR...")
+                text = self.ocr_service.extract_text(pdf_path)
+            else:
+                logger.info("Digital PDF detected. Extracting text...")
+                text = self._extract_text(pdf_path)
 
-    def load(self) -> list[Document]:
-        """
-        Download and extract text from the document.
-
-        Automatically chooses OCR if required.
-        """
-
-        pdf_path = self.download()
-
-        if is_scanned_pdf(str(pdf_path)):
             logger.info(
-                "Scanned PDF detected. Using OCR."
+                f"Extracted {len(text)} characters from document."
             )
 
-            documents = ocr_pdf(str(pdf_path))
+            return text
 
-        else:
-            logger.info(
-                "Digital PDF detected. Extracting embedded text."
-            )
-
-            documents = load_pdf(str(pdf_path))
-
-        # Attach additional metadata to every page
-        for document in documents:
-            document.metadata.update(
-                {
-                    "document_id": self.document_id,
-                    "user_id": self.user_id,
-                    "storage_path": self.storage_path,
-                }
-            )
-
-        logger.info(
-            "Successfully extracted %d page(s).",
-            len(documents),
-        )
-
-        return documents
-
-    def cleanup(self) -> None:
+    def _extract_text(self, pdf_path: Path) -> str:
         """
-        Delete the downloaded file after processing.
+        Extract text from a digital PDF using PyMuPDF.
         """
+
+        document = fitz.open(pdf_path)
+
+        pages = []
 
         try:
-            if self.local_pdf.exists():
-                self.local_pdf.unlink()
+            for page in document:
+                pages.append(page.get_text())
+        finally:
+            document.close()
 
-                logger.info(
-                    "Deleted temporary file: %s",
-                    self.local_pdf,
-                )
+        return "\n".join(pages).strip()
 
-        except Exception:
-            logger.exception(
-                "Failed to delete temporary file."
-            )
+    def _is_scanned_pdf(self, pdf_path: Path) -> bool:
+        """
+        Determines whether the PDF is scanned by checking if
+        enough selectable text exists.
+        """
+
+        document = fitz.open(pdf_path)
+
+        total_chars = 0
+
+        try:
+            for page in document:
+                total_chars += len(page.get_text().strip())
+
+                if total_chars > 100:
+                    return False
+        finally:
+            document.close()
+
+        return True
+
+
+document_processor = DocumentProcessor()

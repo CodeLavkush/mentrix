@@ -1,18 +1,11 @@
-from uuid import uuid4
-
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from ..utils.config import settings
-from ..utils.logger import logger
+from utils.config import settings
+from utils.logger import logger
 
 
 class ChunkingService:
-    """
-    Responsible for splitting documents into chunks while
-    preserving metadata.
-    """
-
     def __init__(self):
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=settings.CHUNK_SIZE,
@@ -21,40 +14,54 @@ class ChunkingService:
                 "\n\n",
                 "\n",
                 ". ",
+                "? ",
+                "! ",
+                "; ",
+                ", ",
                 " ",
                 "",
             ],
+            length_function=len,
         )
 
-    def split(
+    def create_chunks(
         self,
-        documents: list[Document],
+        text: str,
+        document_id: str,
+        source: str,
     ) -> list[Document]:
         """
-        Split LangChain documents into chunks.
-
-        Args:
-            documents: Extracted documents
-
-        Returns:
-            Chunked documents
+        Split extracted text into LangChain Documents.
         """
 
-        logger.info(
-            "Splitting %d document(s)...",
-            len(documents),
-        )
+        logger.info("Creating document chunks...")
 
-        chunks = self.text_splitter.split_documents(documents)
+        if not text.strip():
+            logger.warning("Document contains no text.")
+            return []
 
-        for index, chunk in enumerate(chunks, start=1):
+        chunks = self.text_splitter.split_text(text)
 
-            chunk.metadata["chunk_id"] = str(uuid4())
-            chunk.metadata["chunk_index"] = index
+        documents: list[Document] = []
 
-        logger.info(
-            "Generated %d chunks",
-            len(chunks),
-        )
+        total = len(chunks)
 
-        return chunks
+        for index, chunk in enumerate(chunks):
+            documents.append(
+                Document(
+                    page_content=chunk,
+                    metadata={
+                        "document_id": document_id,
+                        "source": source,
+                        "chunk_index": index,
+                        "total_chunks": total,
+                    },
+                )
+            )
+
+        logger.info(f"Created {len(documents)} chunks.")
+
+        return documents
+
+
+chunking_service = ChunkingService()
