@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from models.schemas import ChatRequest
-from services.chat_service import chat_service
+from src.models.schemas import ChatRequest
+from src.services.chat_service import chat_service
 
 router = APIRouter()
 

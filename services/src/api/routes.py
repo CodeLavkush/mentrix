@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException
 
-from models.schemas import ProcessDocumentRequest
-from services.chunking_service import chunking_service
-from services.document_processor import document_processor
-from services.embedding_service import embedding_service
+from src.models.schemas import ProcessDocumentRequest
+from src.services.chunking_service import chunking_service
+from src.services.document_processor import document_processor
+from src.services.embedding_service import embedding_service
 
 router = APIRouter()
 

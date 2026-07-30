@@ -1,10 +1,10 @@
 from langchain_core.documents import Document
 from langchain_qdrant import QdrantVectorStore
 
-from clients.gemini_client import gemini_service
-from clients.qdrant_client import qdrant_service
-from utils.config import settings
-from utils.logger import logger
+from src.clients.gemini_client import gemini_service
+from src.clients.qdrant_client import qdrant_service
+from src.utils.config import settings
+from src.utils.logger import logger
 
 
 class RAGService:
@@ -40,4 +40,13 @@ class RAGService:
         return documents
 
 
-rag_service = RAGService()
+_rag_service = None
+
+
+def get_rag_service():
+    global _rag_service
+
+    if _rag_service is None:
+        _rag_service = RAGService()
+
+    return _rag_service

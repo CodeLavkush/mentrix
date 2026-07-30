@@ -1,8 +1,8 @@
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from utils.config import settings
-from utils.logger import logger
+from src.utils.config import settings
+from src.utils.logger import logger
 
 
 class ChunkingService:

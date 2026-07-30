@@ -1,7 +1,7 @@
 from google import genai
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
-from utils.config import settings
+from src.utils.config import settings
 
 
 class GeminiClient:

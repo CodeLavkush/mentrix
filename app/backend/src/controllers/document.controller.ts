@@ -32,7 +32,7 @@ const uploadDocument: RequestHandler = asyncHandler(async (req, res) => {
 
     let documentKey: string | null = null
 
-    documentKey = `users/${userId}/documents/${randomUUID()}-${document.originalname}`
+    documentKey = `users/documents/${userId}/${randomUUID()}-${document.originalname}`
 
     const storagePath = await uploadFile(
         documentKey,

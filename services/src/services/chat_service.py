@@ -1,6 +1,6 @@
-from clients.gemini_client import gemini_service
-from utils.logger import logger
-from .rag_service import rag_service
+from src.clients.gemini_client import gemini_service
+from src.utils.logger import logger
+from .rag_service import get_rag_service
 
 
 SYSTEM_PROMPT = """
@@ -27,7 +27,7 @@ class ChatService:
 
         logger.info("Retrieving context...")
 
-        documents = rag_service.retrieve(
+        documents = get_rag_service.retrieve(
             document_id=document_id,
             question=question,
         )

@@ -3,8 +3,8 @@ from pathlib import Path
 
 import fitz
 
-from clients.minio_client import minio_client
-from utils.logger import logger
+from src.clients.minio_client import minio_client
+from src.utils.logger import logger
 from .ocr_service import OCRService
 
 

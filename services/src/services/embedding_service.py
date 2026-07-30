@@ -3,10 +3,10 @@ from uuid import uuid4
 from langchain_core.documents import Document
 from langchain_qdrant import QdrantVectorStore
 
-from clients.gemini_client import gemini_service
-from clients.qdrant_client import qdrant_service
-from utils.config import settings
-from utils.logger import logger
+from src.clients.gemini_client import gemini_service
+from src.clients.qdrant_client import qdrant_service
+from src.utils.config import settings
+from src.utils.logger import logger
 
 
 class EmbeddingService:

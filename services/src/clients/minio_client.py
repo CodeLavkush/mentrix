@@ -1,8 +1,8 @@
 from minio import Minio
 from minio.error import S3Error
 
-from utils.config import settings
-from utils.logger import logger
+from src.utils.config import settings
+from src.utils.logger import logger
 
 
 class MinioClient:

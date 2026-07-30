@@ -3,13 +3,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.chat import router as chat_router
-from api.routes import router as document_router
-from clients.minio_client import minio_client
-from clients.qdrant_client import qdrant_service
-from utils.config import settings
-from utils.logger import logger
-
+from src.api.chat import router as chat_router
+from src.api.routes import router as document_router
+from src.clients.minio_client import minio_client
+from src.clients.qdrant_client import qdrant_service
+from src.utils.config import settings
+from src.utils.logger import logger
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
