@@ -73,9 +73,9 @@ model Documents {
 
 model Quizzes {
   id             String          @id @default(uuid())
-  userId         String          @unique @map("user_id")
+  userId         String          @map("user_id")
   user           User            @relation(fields: [userId], references: [id])
-  documentId     String          @unique @map("document_id")
+  documentId     String          @map("document_id")
   documents      Documents       @relation(fields: [documentId], references: [id])
   quizTitle      String          @map("quiz_title") @db.VarChar(255)
   difficulty     Difficulty      @default(EASY)
@@ -89,7 +89,7 @@ model Quizzes {
 
 model QuizQuestions {
   id            String  @id @default(uuid())
-  quizId        String  @unique @map("quiz_id")
+  quizId        String  @map("quiz_id")
   quiz          Quizzes @relation(fields: [quizId], references: [id])
   question      String  @db.Text
   optionA       String  @db.Text
@@ -104,7 +104,7 @@ model QuizQuestions {
 
 model Notes {
   id         String    @id @default(uuid())
-  userId     String    @unique @map("user_id")
+  userId     String    @map("user_id")
   user       User      @relation(fields: [userId], references: [id])
   documentId String    @unique @map("document_id")
   documents  Documents @relation(fields: [documentId], references: [id])
@@ -118,7 +118,7 @@ model Notes {
 
 model Whiteboards {
   id          String   @id @default(uuid())
-  userId      String   @unique @map("user_id")
+  userId      String   @map("user_id")
   user        User     @relation(fields: [userId], references: [id])
   title       String   @db.VarChar(255)
   drawingData Json     @map("drawing_data") @db.JsonB
@@ -131,9 +131,9 @@ model Whiteboards {
 
 model ChatMessages {
   id         String    @id @default(uuid())
-  userId     String    @unique @map("user_id")
+  userId     String    @map("user_id")
   user       User      @relation(fields: [userId], references: [id])
-  documentId String    @unique @map("document_id")
+  documentId String    @map("document_id")
   documents  Documents @relation(fields: [documentId], references: [id])
   sender     Sender    @default(USER)
   message    String    @db.Text
@@ -144,9 +144,9 @@ model ChatMessages {
 
 model QuizAttempts {
   id            String         @id @default(uuid())
-  userId        String         @unique @map("user_id")
+  userId        String         @map("user_id")
   user          User           @relation(fields: [userId], references: [id])
-  quizId        String         @unique @map("quiz_id")
+  quizId        String         @map("quiz_id")
   quiz          Quizzes        @relation(fields: [quizId], references: [id])
   score         Int            @default(0)
   totalMarks    Int            @default(0) @map("total_marks")
@@ -160,7 +160,7 @@ model QuizAttempts {
 
 model FlashcardSets {
   id            String       @id @default(uuid())
-  userId        String       @unique @map("user_id")
+  userId        String       @map("user_id")
   user          User         @relation(fields: [userId], references: [id])
   quizAttemptId String       @unique @map("quiz_attempt_id")
   quizAttempt   QuizAttempts @relation(fields: [quizAttemptId], references: [id])
@@ -176,7 +176,7 @@ model FlashcardSets {
 
 model Flashcards {
   id                String              @id @default(uuid())
-  flashcardSetId    String              @unique @map("flashcard_set_id")
+  flashcardSetId    String              @map("flashcard_set_id")
   flashcardSet      FlashcardSets       @relation(fields: [flashcardSetId], references: [id])
   frontText         String              @map("front_text") @db.Text
   backText          String              @map("back_text") @db.Text
@@ -189,9 +189,9 @@ model Flashcards {
 
 model FlashcardProgress {
   id           String     @id @default(uuid())
-  userId       String     @unique @map("user_id")
+  userId       String     @map("user_id")
   user         User       @relation(fields: [userId], references: [id])
-  flashcardId  String     @unique @map("flashcard_id")
+  flashcardId  String     @map("flashcard_id")
   flashcard    Flashcards @relation(fields: [flashcardId], references: [id])
   reviewCount  Int        @default(0) @map("review_count")
   correctCount Int        @default(0) @map("correct_count")
