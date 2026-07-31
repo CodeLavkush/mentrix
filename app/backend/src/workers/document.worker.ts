@@ -25,8 +25,8 @@ export const documentWorker = new Worker<DocumentProcessingJob>(
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    documentId,
-                    storagePath,
+                    document_id: documentId,
+                    storage_path: storagePath,
                 }),
                 signal: AbortSignal.timeout(10 * 60 * 1000), // 10 minutes
             }

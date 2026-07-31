@@ -6,6 +6,7 @@ import { prisma } from "../db/prisma.js"
 import { ApiError } from "../utils/api-error.js"
 import { documentProcessingQueue } from "../queues/document.queue.js"
 import { randomUUID } from "crypto"
+import { serializeBigInt } from "../utils/serialize.js"
 
 
 const uploadDocument: RequestHandler = asyncHandler(async (req, res) => {
@@ -82,7 +83,7 @@ const uploadDocument: RequestHandler = asyncHandler(async (req, res) => {
 
             backoff: {
                 type: "exponential",
-                delay: 5000
+                delay: 120000,
             },
 
             removeOnComplete: 100,
@@ -95,7 +96,7 @@ const uploadDocument: RequestHandler = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(
                 201,
-                uploadedDocument,
+                serializeBigInt(uploadDocument),
                 "Document uploaded Successfully"
             )
         )

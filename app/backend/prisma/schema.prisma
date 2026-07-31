@@ -56,7 +56,7 @@ model AcademicDetails {
 
 model Documents {
   id           String         @id @default(uuid())
-  userId       String         @unique @map("user_id")
+  userId       String         @map("user_id")
   user         User           @relation(fields: [userId], references: [id])
   fileName     String         @map("file_name") @db.VarChar(255)
   fileType     String         @map("file_type") @db.VarChar(20)

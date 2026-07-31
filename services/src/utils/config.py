@@ -46,8 +46,8 @@ class Settings(BaseSettings):
     # ==========================
     # Chunking
     # ==========================
-    CHUNK_SIZE: int = 1000
-    CHUNK_OVERLAP: int = 200
+    CHUNK_SIZE: int = 1500
+    CHUNK_OVERLAP: int = 150
 
     model_config = SettingsConfigDict(
         env_file=".env",
