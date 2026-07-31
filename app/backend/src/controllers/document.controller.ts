@@ -96,7 +96,7 @@ const uploadDocument: RequestHandler = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(
                 201,
-                serializeBigInt(uploadDocument),
+                serializeBigInt(uploadedDocument),
                 "Document uploaded Successfully"
             )
         )
