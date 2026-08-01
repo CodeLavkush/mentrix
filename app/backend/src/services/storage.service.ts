@@ -13,6 +13,35 @@ export async function ensureBucket() {
     }
 }
 
+export async function fileExists(storagePath: string) {
+    try {
+        await minioClient.statObject(
+            BUCKET_NAME,
+            storagePath,
+        );
+
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+export async function deleteFile(storagePath: string) {
+    await minioClient.removeObject(
+        BUCKET_NAME,
+        storagePath,
+    );
+}
+
+export async function getFileStream(
+    storagePath: string,
+) {
+    return await minioClient.getObject(
+        BUCKET_NAME,
+        storagePath,
+    );
+}
+
 export async function uploadFile(
     fileName: string,
     fileBuffer: Buffer,

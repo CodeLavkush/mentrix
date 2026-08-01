@@ -1,7 +1,7 @@
 import { ApiResponse } from "../utils/api-response.js"
 import { asyncHandler } from "../utils/async-handler.js"
 import type { RequestHandler } from "express"
-import { uploadFile, getFileMetadata } from "../services/storage.service.js"
+import { uploadFile, getFileMetadata, fileExists, deleteFile, getFileStream } from "../services/storage.service.js"
 import { prisma } from "../db/prisma.js"
 import { ApiError } from "../utils/api-error.js"
 import { documentProcessingQueue } from "../queues/document.queue.js"
@@ -102,6 +102,188 @@ const uploadDocument: RequestHandler = asyncHandler(async (req, res) => {
         )
 })
 
+const getDocumentsById: RequestHandler = asyncHandler(async (req, res) => {
+    const userId = req.user?.id
+
+    const user = await prisma.user.findFirst({
+        where: {
+            id: userId,
+        },
+        select: {
+            id: true
+        }
+    })
+
+    if (!user) {
+        throw new ApiError(404, "User does not exists")
+    }
+
+    const documents = await prisma.documents.findMany({
+        where: {
+            userId,
+        },
+        select: {
+            id: true,
+            fileName: true,
+            fileType: true,
+            fileSize: true,
+            uploadStatus: true,
+            user: {
+                select: {
+                    id: true,
+                    username: true
+                }
+            }
+        }
+    })
+
+    if (documents.length < 0) {
+        throw new ApiError(404, "No documents found for the user")
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                serializeBigInt(documents),
+                "Documents fetched Successfully"
+            )
+        )
+})
+
+const deleteDocumentById: RequestHandler = asyncHandler(async (req, res) => {
+    const userId = req.user?.id
+    const { documentId } = req.params
+
+    const user = await prisma.user.findFirst({
+        where: {
+            id: userId,
+        },
+        select: {
+            id: true
+        },
+    })
+
+    if (!user) {
+        throw new ApiError(404, "User does not exists")
+    }
+
+    const document = await prisma.documents.findFirst({
+        where: {
+            id: documentId as string,
+            userId,
+        },
+        select: {
+            id: true,
+            storagePath: true
+        }
+    })
+
+    if (!document) {
+        throw new ApiError(404, "Document does not exists")
+    }
+
+    const documentExists = await fileExists(document.storagePath)
+
+    if (!documentExists) {
+        throw new ApiError(404, "Document does not exists in storage")
+    }
+
+    await deleteFile(document.storagePath)
+    const deletedDocument = await prisma.documents.delete({
+        where: {
+            id: documentId as string
+        },
+        select: {
+            id: true,
+            fileName: true,
+            fileType: true,
+            fileSize: true,
+            uploadStatus: true,
+            user: {
+                select: {
+                    id: true,
+                    username: true
+                }
+            }
+        }
+    })
+
+    if (!deletedDocument) {
+        throw new ApiError(409, "Something went wrong while deleting the document")
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                serializeBigInt(deletedDocument),
+                "Document deleted Successfully"
+            )
+        )
+})
+
+const downloadDocumentById: RequestHandler = asyncHandler(async (req, res) => {
+    const { documentId } = req.params;
+    const userId = req.user?.id;
+
+    const user = await prisma.user.findFirst({
+        where: {
+            id: userId,
+        },
+        select: {
+            id: true
+        },
+    })
+
+    if (!user) {
+        throw new ApiError(404, "User does not exists")
+    }
+
+    const document = await prisma.documents.findFirst({
+        where: {
+            id: documentId as string,
+            userId,
+        },
+        select: {
+            id: true,
+            fileName: true,
+            storagePath: true,
+        }
+    });
+
+    if (!document) {
+        throw new ApiError(404, "Document does not exists")
+    }
+
+    const metadata = await getFileMetadata(document.storagePath);
+    const fileStream = await getFileStream(document.storagePath);
+
+    res.setHeader(
+        "Content-Type",
+        metadata.metaData["content-type"] ?? "application/octet-stream",
+    );
+
+    res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${document.fileName}"`,
+    );
+
+    fileStream.on("error", (error: any) => {
+        console.error(error);
+
+        if (!res.headersSent) {
+            throw new ApiError(500, "Failed to download document");
+        }
+    });
+
+    fileStream.pipe(res);
+})
 export {
-    uploadDocument
+    uploadDocument,
+    getDocumentsById,
+    deleteDocumentById,
+    downloadDocumentById
 }
