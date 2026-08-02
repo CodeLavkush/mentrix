@@ -34,6 +34,8 @@ export const mockAcademicDetailsUpdate: Mock<any> = jest.fn<
 // Documents
 export const mockDocumentsCreate: Mock<any> = jest.fn();
 export const mockDocumentsFindMany: Mock<any> = jest.fn();
+export const mockDocumentsFindFirst: Mock<any> = jest.fn();
+export const mockDocumentsDelete: Mock<any> = jest.fn();
 
 export function setupPrismaMock() {
     jest.unstable_mockModule(
@@ -54,6 +56,8 @@ export function setupPrismaMock() {
                 documents: {
                     create: mockDocumentsCreate,
                     findMany: mockDocumentsFindMany,
+                    findFirst: mockDocumentsFindFirst,
+                    delete: mockDocumentsDelete,
                 },
             },
         })
