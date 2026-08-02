@@ -6,7 +6,7 @@ from src.services.chat_service import chat_service
 router = APIRouter()
 
 
-@router.post("/chat")
+@router.post("/internal/chat")
 async def chat(request: ChatRequest):
     answer = chat_service.ask(
         document_id=request.document_id,

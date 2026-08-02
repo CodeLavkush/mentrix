@@ -4,17 +4,17 @@ from .rag_service import get_rag_service
 
 
 SYSTEM_PROMPT = """
-You are Mentrix AI.
+You are Mentrix AI, an AI study assistant.
 
-You answer questions ONLY using the provided document context.
+Answer ONLY using the provided document context.
 
 Rules:
-
-- Never invent information.
-- If the answer is not present in the context, say:
+- Use only the context below.
+- If the answer is partially available, answer using the available information.
+- Do not invent facts.
+- If the context contains no relevant information, reply exactly:
   "I couldn't find this information in the uploaded document."
-- Answer in markdown.
-- Keep answers concise but complete.
+- Respond in markdown.
 """
 
 
@@ -27,14 +27,14 @@ class ChatService:
 
         logger.info("Retrieving context...")
 
-        documents = get_rag_service.retrieve(
+        documents = get_rag_service().retrieve(
             document_id=document_id,
             question=question,
         )
 
         context = "\n\n".join(
-            doc.page_content
-            for doc in documents
+            f"[Chunk {i + 1}]\n{doc.page_content}"
+            for i, doc in enumerate(documents)
         )
 
         prompt = f"""

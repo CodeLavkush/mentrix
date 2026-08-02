@@ -1,5 +1,6 @@
 from langchain_core.documents import Document
 from langchain_qdrant import QdrantVectorStore
+from qdrant_client.models import Filter, FieldCondition, MatchValue
 
 from src.clients.gemini_client import gemini_service
 from src.clients.qdrant_client import qdrant_service
@@ -20,22 +21,33 @@ class RAGService:
         document_id: str,
         question: str,
         limit: int = 5,
+        score_threshold: float = 0.4,
     ) -> list[Document]:
         """
-        Retrieve relevant chunks for a document.
+        Retrieve relevant chunks for a document using a relevance score threshold.
         """
 
         logger.info(f"Searching Qdrant for document {document_id}")
 
-        documents = self.vector_store.similarity_search(
+        results = self.vector_store.similarity_search_with_relevance_scores(
             query=question,
             k=limit,
-            filter={
-                "document_id": document_id,
-            },
+            score_threshold=score_threshold,
+            filter=Filter(
+                must=[
+                    FieldCondition(
+                        key="metadata.document_id",
+                        match=MatchValue(value=document_id),
+                    )
+                ]
+            ),
         )
 
-        logger.info(f"Retrieved {len(documents)} chunks.")
+        documents = [doc for doc, score in results]
+
+        logger.info(
+            f"Retrieved {len(documents)} chunks with score >= {score_threshold}"
+        )
 
         return documents
 
