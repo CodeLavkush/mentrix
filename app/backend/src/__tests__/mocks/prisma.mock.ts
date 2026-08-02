@@ -2,6 +2,7 @@ import { jest } from "@jest/globals";
 import type { MockCreatedUser, MockCreatedUserWithoutAvatar } from "../../types/test/index.js";
 import type { Mock } from "node:test";
 
+//User
 export const mockFindFirst: Mock<any> = jest.fn<
     (args: unknown) => Promise<{ id: string } | null>
 >();
@@ -18,6 +19,8 @@ export const mockFindUnique: Mock<any> = jest.fn<
 
 export const mockUpdate: Mock<any> = jest.fn();
 
+
+// Academic Details
 export const mockAcademicDetailsFindFirst:
     Mock<any> = jest.fn();
 
@@ -27,6 +30,10 @@ export const mockAcademicDetailsCreate:
 export const mockAcademicDetailsUpdate: Mock<any> = jest.fn<
     (args: unknown) => Promise<{ id: string } | null>
 >();
+
+// Documents
+export const mockDocumentsCreate: Mock<any> = jest.fn();
+
 
 export function setupPrismaMock() {
     jest.unstable_mockModule(
@@ -43,6 +50,9 @@ export function setupPrismaMock() {
                     findFirst: mockAcademicDetailsFindFirst,
                     create: mockAcademicDetailsCreate,
                     update: mockAcademicDetailsUpdate,
+                },
+                documents: {
+                    create: mockDocumentsCreate,
                 },
             },
         })
