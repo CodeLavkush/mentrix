@@ -37,6 +37,10 @@ export const mockDocumentsFindMany: Mock<any> = jest.fn();
 export const mockDocumentsFindFirst: Mock<any> = jest.fn();
 export const mockDocumentsDelete: Mock<any> = jest.fn();
 
+//chat
+export const mockChatMessagesCreate: Mock<any> = jest.fn();
+export const mockChatMessagesFindMany: Mock<any> = jest.fn();
+
 export function setupPrismaMock() {
     jest.unstable_mockModule(
         "../../db/prisma.js",
@@ -59,6 +63,10 @@ export function setupPrismaMock() {
                     findFirst: mockDocumentsFindFirst,
                     delete: mockDocumentsDelete,
                 },
+                chatMessages: {
+                    create: mockChatMessagesCreate,
+                    findMany: mockChatMessagesFindMany
+                }
             },
         })
     );
