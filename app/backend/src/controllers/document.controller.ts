@@ -281,6 +281,7 @@ const downloadDocumentById: RequestHandler = asyncHandler(async (req, res) => {
 
     fileStream.pipe(res);
 })
+
 export {
     uploadDocument,
     getDocumentsById,
