@@ -18,8 +18,14 @@ class Settings(BaseSettings):
     # ==========================
     GEMINI_API_KEY: str = Field(...)
 
-    EMBEDDING_MODEL: str = "gemini-embedding-001"
-    CHAT_MODEL: str = "gemini-2.5-flash"
+    GEMINI_VISION_MODEL: str = Field(...)
+    EMBEDDING_MODEL: str = Field(...)
+    CHAT_MODEL: str = Field(...)
+
+    # ==========================
+    # OCR
+    # ==========================
+    OCR_MAX_WORKERS: int = 1
 
     # ==========================
     # Qdrant
@@ -36,13 +42,7 @@ class Settings(BaseSettings):
     MINIO_SECRET_KEY: str
     MINIO_BUCKET: str
     MINIO_SECURE: bool = False
-
-    # ==========================
-    # OCR
-    # ==========================
-    TESSERACT_CMD: str = "/usr/bin/tesseract"
-    POPPLER_PATH: str | None = None
-
+    
     # ==========================
     # Chunking
     # ==========================

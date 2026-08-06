@@ -1,82 +1,71 @@
 import tempfile
 from pathlib import Path
 
-import fitz
-
 from src.clients.minio_client import minio_client
+from src.services.ocr_service import ocr_service
+from src.services.pdf_service import pdf_service
 from src.utils.logger import logger
-from .ocr_service import OCRService
 
 
 class DocumentProcessor:
-    def __init__(self):
-        self.ocr_service = OCRService()
+    """
+    Orchestrates document processing.
 
-    def process_document(self, storage_path: str) -> str:
-        """
-        Downloads a document from MinIO and extracts its text.
-        """
+    Responsibilities:
+    - Download document from MinIO
+    - Route PDFs to PDF service
+    - Route images to OCR service
+    """
 
-        logger.info(f"Processing document: {storage_path}")
+    IMAGE_EXTENSIONS = {
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".bmp",
+        ".tif",
+        ".tiff",
+        ".webp",
+    }
+
+    def process_document(
+        self,
+        document_id: str,
+        storage_path: str,
+    ) -> str:
+        logger.info(f"Processing document: {document_id}")
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            pdf_path = Path(temp_dir) / "document.pdf"
+            temp_dir = Path(temp_dir)
+
+            suffix = Path(storage_path).suffix.lower()
+            local_file = temp_dir / f"{document_id}{suffix}"
+
+            logger.info("Downloading document from MinIO...")
 
             minio_client.download_file(
                 object_name=storage_path,
-                destination=str(pdf_path),
+                destination=str(local_file),
             )
 
-            if self._is_scanned_pdf(pdf_path):
-                logger.info("Scanned PDF detected. Running OCR...")
-                text = self.ocr_service.extract_text(pdf_path)
+            logger.info("Document downloaded successfully.")
+
+            if suffix == ".pdf":
+                logger.info("PDF detected.")
+                text = pdf_service.extract_text(local_file)
+
+            elif suffix in self.IMAGE_EXTENSIONS:
+                logger.info("Image detected. Running OCR...")
+                text = ocr_service.extract_text(local_file)
+
             else:
-                logger.info("Digital PDF detected. Extracting text...")
-                text = self._extract_text(pdf_path)
+                raise ValueError(f"Unsupported file type: {suffix}")
 
             logger.info(
-                f"Extracted {len(text)} characters from document."
+                "Document processing completed. Extracted %d characters.",
+                len(text),
             )
 
             return text
-
-    def _extract_text(self, pdf_path: Path) -> str:
-        """
-        Extract text from a digital PDF using PyMuPDF.
-        """
-
-        document = fitz.open(pdf_path)
-
-        pages = []
-
-        try:
-            for page in document:
-                pages.append(page.get_text())
-        finally:
-            document.close()
-
-        return "\n".join(pages).strip()
-
-    def _is_scanned_pdf(self, pdf_path: Path) -> bool:
-        """
-        Determines whether the PDF is scanned by checking if
-        enough selectable text exists.
-        """
-
-        document = fitz.open(pdf_path)
-
-        total_chars = 0
-
-        try:
-            for page in document:
-                total_chars += len(page.get_text().strip())
-
-                if total_chars > 100:
-                    return False
-        finally:
-            document.close()
-
-        return True
 
 
 document_processor = DocumentProcessor()

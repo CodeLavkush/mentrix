@@ -1,0 +1,142 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: mentrix-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mentrix
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d mentrix" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - mentrix-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: mentrix-redis
+    restart: unless-stopped
+
+    command: redis-server --appendonly yes
+
+    ports:
+      - "6379:6379"
+
+    volumes:
+      - redis_data:/data
+
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - mentrix-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: mentrix-minio
+    restart: unless-stopped
+
+    command: server /data --console-address ":9001"
+
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+    volumes:
+      - minio_data:/data
+
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+    networks:
+      - mentrix-network
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: mentrix-qdrant
+    restart: unless-stopped
+
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+
+    environment:
+      QDRANT__SERVICE__HTTP_PORT: 6333
+      QDRANT__SERVICE__GRPC_PORT: 6334
+
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+    networks:
+      - mentrix-network
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mentrix-mailpit
+    restart: unless-stopped
+
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+    networks:
+      - mentrix-network
+
+  ai-service:
+    build:
+      context: ./services
+      dockerfile: Dockerfile
+
+    container_name: mentrix-ai
+    restart: unless-stopped
+
+    env_file:
+      - ./services/.env
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      minio:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+
+    volumes:
+      - huggingface_cache:/root/.cache/huggingface
+
+    networks:
+      - mentrix-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  qdrant_data:
+  huggingface_cache:
+
+networks:
+  mentrix-network:
+    driver: bridge

@@ -1,3 +1,5 @@
+import re
+
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -6,6 +8,10 @@ from src.utils.logger import logger
 
 
 class ChunkingService:
+    """
+    Splits extracted document text into semantic chunks.
+    """
+
     def __init__(self):
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=settings.CHUNK_SIZE,
@@ -31,22 +37,29 @@ class ChunkingService:
         source: str,
     ) -> list[Document]:
         """
-        Split extracted text into LangChain Documents.
+        Convert extracted text into LangChain Documents.
         """
 
         logger.info("Creating document chunks...")
 
-        if not text.strip():
+        text = self._normalize_text(text)
+
+        if not text:
             logger.warning("Document contains no text.")
             return []
 
-        chunks = self.text_splitter.split_text(text)
+        raw_chunks = self.text_splitter.split_text(text)
 
         documents: list[Document] = []
 
-        total = len(chunks)
+        total_chunks = len(raw_chunks)
 
-        for index, chunk in enumerate(chunks):
+        for index, chunk in enumerate(raw_chunks):
+            chunk = chunk.strip()
+
+            if not chunk:
+                continue
+
             documents.append(
                 Document(
                     page_content=chunk,
@@ -54,14 +67,31 @@ class ChunkingService:
                         "document_id": document_id,
                         "source": source,
                         "chunk_index": index,
-                        "total_chunks": total,
+                        "total_chunks": total_chunks,
+                        "chunk_length": len(chunk),
                     },
                 )
             )
 
-        logger.info(f"Created {len(documents)} chunks.")
+        logger.info(
+            "Created %d chunks from %d characters.",
+            len(documents),
+            len(text),
+        )
 
         return documents
+
+    @staticmethod
+    def _normalize_text(text: str) -> str:
+        """
+        Normalize extracted text before chunking.
+        """
+
+        text = text.replace("\r\n", "\n")
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        text = re.sub(r"[ \t]+", " ", text)
+
+        return text.strip()
 
 
 chunking_service = ChunkingService()

@@ -12,6 +12,7 @@ router = APIRouter()
 async def process_document(request: ProcessDocumentRequest):
     try:
         text = document_processor.process_document(
+            request.document_id,
             request.storage_path,
         )
 

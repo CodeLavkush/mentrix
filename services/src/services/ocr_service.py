@@ -1,73 +1,85 @@
 from pathlib import Path
 
-import pytesseract
-from pdf2image import convert_from_path
-from PIL import Image
-
-from src.utils.config import settings
+from src.services.image_preprocessor import image_preprocessor
+from src.services.vision_service import vision_service
 from src.utils.logger import logger
 
 
 class OCRService:
-    def __init__(self):
-        # Configure tesseract executable (mainly needed on Windows)
-        pytesseract.pytesseract.tesseract_cmd = settings.TESSERACT_CMD
+    """
+    Handles OCR using the Gemini Vision Service.
 
-    def extract_text(self, pdf_path: Path) -> str:
+    Responsibilities:
+    - Preprocess image for better OCR accuracy
+    - Extract text using Gemini Vision
+    - Clean extracted text
+    - Remove temporary processed images
+    """
+
+    def extract_text(self, image_path: Path) -> str:
         """
-        Extract text from a scanned PDF using OCR.
+        Extract text from an image.
         """
 
-        logger.info("Converting PDF pages to images...")
-
-        images = convert_from_path(
-            pdf_path=str(pdf_path),
-            dpi=300,
-            poppler_path=settings.POPPLER_PATH,
+        logger.info(
+            "Running OCR on %s",
+            image_path.name,
         )
 
-        logger.info(f"{len(images)} pages detected.")
-
-        pages = []
-
-        for page_number, image in enumerate(images, start=1):
-            logger.info(f"OCR Page {page_number}/{len(images)}")
-
-            text = self._ocr_image(image)
-
-            pages.append(text)
-
-        return "\n".join(pages).strip()
-
-    def _ocr_image(self, image: Image.Image) -> str:
-        """
-        Perform OCR on a PIL image.
-        """
-
-        # Convert to grayscale
-        image = image.convert("L")
-
-        text = pytesseract.image_to_string(
-            image,
-            lang="eng",
-            config="--oem 3 --psm 6",
+        processed_image = image_preprocessor.preprocess(
+            image_path
         )
 
-        return self._clean_text(text)
+        try:
+            text = vision_service.extract_text(
+                processed_image
+            )
+
+            if not text:
+                logger.warning(
+                    "No text detected in %s",
+                    image_path.name,
+                )
+                return ""
+
+            cleaned_text = self._clean_text(text)
+
+            logger.info(
+                "OCR completed. Extracted %d characters.",
+                len(cleaned_text),
+            )
+
+            return cleaned_text
+
+        finally:
+            try:
+                processed_image.unlink(
+                    missing_ok=True,
+                )
+
+                logger.debug(
+                    "Deleted temporary image: %s",
+                    processed_image,
+                )
+
+            except Exception:
+                logger.warning(
+                    "Failed to delete temporary image: %s",
+                    processed_image,
+                    exc_info=True,
+                )
 
     @staticmethod
     def _clean_text(text: str) -> str:
         """
-        Remove excessive blank lines and whitespace.
+        Remove empty lines and trim whitespace.
         """
 
-        lines = [
+        return "\n".join(
             line.strip()
             for line in text.splitlines()
             if line.strip()
-        ]
-
-        return "\n".join(lines)
+        )
 
 
 ocr_service = OCRService()
