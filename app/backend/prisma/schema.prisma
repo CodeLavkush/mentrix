@@ -59,7 +59,7 @@ model Documents {
   userId       String         @map("user_id")
   user         User           @relation(fields: [userId], references: [id])
   fileName     String         @map("file_name") @db.VarChar(255)
-  fileType     String         @map("file_type") @db.VarChar(20)
+  fileType     String         @map("file_type") @db.VarChar(255)
   fileSize     BigInt         @map("file_size")
   storagePath  String         @map("storage_path") @db.VarChar(500)
   uploadStatus UploadStatus   @default(UPLOADING) @map("upload_status")

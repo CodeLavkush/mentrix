@@ -25,6 +25,7 @@ You are a professional OCR engine.
 Extract ALL visible text exactly as written.
 
 Rules:
+
 - Return ONLY extracted text.
 - Preserve reading order.
 - Preserve paragraphs.
@@ -39,7 +40,9 @@ Rules:
 """
 
     def __init__(self):
-        logger.info("Initializing Gemini Vision Service...")
+        logger.info(
+            "Initializing Gemini Vision Service..."
+        )
 
         self.client = genai.Client(
             api_key=settings.GEMINI_API_KEY,
@@ -50,7 +53,10 @@ Rules:
             self.MODEL,
         )
 
-    def extract_text(self, image_path: Path) -> str:
+    def extract_text(
+        self,
+        image_path: Path,
+    ) -> str:
         """
         Extract OCR text from an image.
         """
@@ -58,7 +64,10 @@ Rules:
         image_bytes = image_path.read_bytes()
         mime_type = self._get_mime_type(image_path)
 
-        for attempt in range(1, self.MAX_RETRIES + 1):
+        for attempt in range(
+            1,
+            self.MAX_RETRIES + 1,
+        ):
             try:
                 logger.info(
                     "OCR request (%d/%d): %s",
@@ -67,31 +76,37 @@ Rules:
                     image_path.name,
                 )
 
-                response = self.client.models.generate_content(
-                    model=self.MODEL,
-                    contents=[
-                        types.Part.from_text(
-                            text=self.SYSTEM_PROMPT,
+                response = (
+                    self.client.models.generate_content(
+                        model=self.MODEL,
+                        contents=[
+                            types.Part.from_bytes(
+                                data=image_bytes,
+                                mime_type=mime_type,
+                            ),
+                        ],
+                        config=types.GenerateContentConfig(
+                            temperature=0,
+                            system_instruction=(
+                                self.SYSTEM_PROMPT
+                            ),
                         ),
-                        types.Part.from_bytes(
-                            data=image_bytes,
-                            mime_type=mime_type,
-                        ),
-                    ],
-                    config=types.GenerateContentConfig(
-                        temperature=0,
-                    ),
+                    )
                 )
 
-                text = (response.text or "").strip()
+                text = (
+                    response.text or ""
+                ).strip()
 
                 if not text:
                     raise RuntimeError(
-                        "Gemini returned an empty OCR response."
+                        "Gemini returned an empty "
+                        "OCR response."
                     )
 
                 logger.info(
-                    "OCR completed successfully for %s (%d chars)",
+                    "OCR completed successfully "
+                    "for %s (%d chars)",
                     image_path.name,
                     len(text),
                 )
@@ -139,10 +154,15 @@ Rules:
 
                 time.sleep(delay)
 
-        raise RuntimeError("OCR failed.")
+        raise RuntimeError(
+            "OCR failed."
+        )
 
     @staticmethod
-    def _get_mime_type(image_path: Path) -> str:
+    def _get_mime_type(
+        image_path: Path,
+    ) -> str:
+
         return {
             ".jpg": "image/jpeg",
             ".jpeg": "image/jpeg",
