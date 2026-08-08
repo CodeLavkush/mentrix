@@ -73,8 +73,20 @@ const profileValidator = () => {
     ]
 }
 
+const quizValidator = () => {
+    return [
+        body("quizTitle")
+            .isString(),
+        body("difficulty")
+            .isString(),
+        body("total_questions")
+            .isNumeric(),
+    ]
+}
+
 export {
     registerUserValidator,
     loginValidator,
-    profileValidator
+    profileValidator,
+    quizValidator
 }

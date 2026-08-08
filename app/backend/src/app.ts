@@ -44,6 +44,8 @@ import authRouter from "./routes/auth.route.js"
 import profileRouter from "./routes/profile.route.js"
 import documentRouter from "./routes/document.route.js"
 import chatRouter from "./routes/chat.route.js"
+import quizRouter from "./routes/quiz.route.js"
+import quizQuestionsRouter from "./routes/quizQuestions.route.js"
 
 setupSwagger(app); // swagger docs endpoint
 app.use("/api/v1/healthcheck", healthCheckRouter)
@@ -51,6 +53,8 @@ app.use("/api/v1/auth", authRouter)
 app.use("/api/v1/profile", profileRouter)
 app.use("/api/v1/document", documentRouter)
 app.use("/api/v1/chat", chatRouter)
+app.use("/api/v1/quiz", quizRouter)
+app.use("/api/v1/quiz-questions", quizQuestionsRouter)
 
 app.use(errorMiddleware)
 

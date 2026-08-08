@@ -76,7 +76,7 @@ model Quizzes {
   userId         String          @map("user_id")
   user           User            @relation(fields: [userId], references: [id])
   documentId     String          @map("document_id")
-  documents      Documents       @relation(fields: [documentId], references: [id])
+  document       Documents       @relation(fields: [documentId], references: [id])
   quizTitle      String          @map("quiz_title") @db.VarChar(255)
   difficulty     Difficulty      @default(EASY)
   totalQuestions Int             @map("total_questions")

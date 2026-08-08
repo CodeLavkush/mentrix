@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.chat import router as chat_router
 from src.api.routes import router as document_router
+from src.api.quiz import router as quiz_router
 from src.clients.minio_client import minio_client
 from src.clients.qdrant_client import qdrant_service
 from src.utils.config import settings
@@ -56,6 +57,12 @@ app.include_router(
     chat_router,
     prefix=settings.API_PREFIX,
     tags=["Chat"],
+)
+
+app.include_router(
+    quiz_router,
+    prefix=settings.API_PREFIX,
+    tags=["Quiz"],
 )
 
 

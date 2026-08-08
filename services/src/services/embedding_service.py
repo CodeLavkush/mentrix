@@ -11,6 +11,7 @@ from src.utils.logger import logger
 
 
 class EmbeddingService:
+
     def __init__(self):
         qdrant_service.create_collection()
 
@@ -29,24 +30,39 @@ class EmbeddingService:
     ) -> None:
 
         if not documents:
-            logger.warning("No chunks available for embedding.")
+            logger.warning(
+                "No chunks available for embedding."
+            )
             return
 
         total = len(documents)
 
-        logger.info(f"Embedding {total} chunks...")
+        logger.info(
+            f"Embedding {total} chunks..."
+        )
 
-        for start in range(0, total, self.batch_size):
-            end = min(start + self.batch_size, total)
+        for start in range(
+            0,
+            total,
+            self.batch_size,
+        ):
+            end = min(
+                start + self.batch_size,
+                total,
+            )
 
             batch = documents[start:end]
 
-            ids = [str(uuid4()) for _ in batch]
+            ids = [
+                str(uuid4())
+                for _ in batch
+            ]
 
             while True:
                 try:
                     logger.info(
-                        f"Embedding batch {start + 1}-{end} of {total}"
+                        f"Embedding batch "
+                        f"{start + 1}-{end} of {total}"
                     )
 
                     self.vector_store.add_documents(
@@ -57,10 +73,13 @@ class EmbeddingService:
                     break
 
                 except Exception as e:
+
                     if "RESOURCE_EXHAUSTED" in str(e):
                         logger.warning(
-                            "Gemini quota exceeded. Waiting 60 seconds..."
+                            "Gemini quota exceeded. "
+                            "Waiting 60 seconds..."
                         )
+
                         time.sleep(60)
                         continue
 
@@ -68,15 +87,18 @@ class EmbeddingService:
 
             time.sleep(2)
 
-        logger.info("Embeddings stored successfully.")
-            
+        logger.info(
+            "Embeddings stored successfully."
+        )
 
     def delete_document(
         self,
         document_id: str,
     ) -> None:
 
-        logger.info(f"Deleting vectors for {document_id}")
+        logger.info(
+            f"Deleting vectors for document: {document_id}"
+        )
 
         qdrant_service.client.delete(
             collection_name=settings.QDRANT_COLLECTION,
@@ -84,7 +106,7 @@ class EmbeddingService:
                 "filter": {
                     "must": [
                         {
-                            "key": "document_id",
+                            "key": "metadata.document_id",
                             "match": {
                                 "value": document_id,
                             },
@@ -94,7 +116,10 @@ class EmbeddingService:
             },
         )
 
-        logger.info("Vectors deleted successfully.")
+        logger.info(
+            f"Vectors deleted successfully for document: "
+            f"{document_id}"
+        )
 
 
 embedding_service = EmbeddingService()
