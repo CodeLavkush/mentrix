@@ -97,10 +97,21 @@ const quizAttemptsValidator = () => {
     ]
 }
 
+const flashcardSetValidator = () => {
+    return [
+        body("title")
+            .isString(),
+        body("topic")
+            .isString(),
+        body("totalCards")
+            .isNumeric(),
+    ]
+}
 export {
     registerUserValidator,
     loginValidator,
     profileValidator,
     quizValidator,
-    quizAttemptsValidator
+    quizAttemptsValidator,
+    flashcardSetValidator,
 }

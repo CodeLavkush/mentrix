@@ -38,6 +38,35 @@ const createQuiz: RequestHandler = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Document does not exsits.")
     }
 
+    const response = await fetch(
+        `${process.env.AI_SERVICE_URL}/api/v1/internal/quiz`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                document_id: document.id,
+                total_questions: totalQuestions,
+                difficulty,
+            }),
+            signal: AbortSignal.timeout(10 * 60 * 1000), // 10 minutes
+        }
+    );
+
+    if (!response.ok) {
+        throw new ApiError(
+            404,
+            "AI Service Error"
+        );
+    }
+
+    const result = await response.json();
+
+    if (result?.questions?.length === 0) {
+        throw new ApiError(404, "Quiz questions not found");
+    }
+
     const quiz = await prisma.quizzes.create({
         data: {
             userId,
@@ -69,35 +98,6 @@ const createQuiz: RequestHandler = asyncHandler(async (req, res) => {
 
     if (!quiz) {
         throw new ApiError(409, "Quiz creation failed.")
-    }
-
-    const response = await fetch(
-        `${process.env.AI_SERVICE_URL}/api/v1/internal/quiz`,
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                document_id: document.id,
-                total_questions: totalQuestions,
-                difficulty,
-            }),
-            signal: AbortSignal.timeout(10 * 60 * 1000), // 10 minutes
-        }
-    );
-
-    if (!response.ok) {
-        throw new ApiError(
-            404,
-            "AI Service Error"
-        );
-    }
-
-    const result = await response.json();
-
-    if (result?.questions?.length === 0) {
-        throw new ApiError(404, "Quiz questions not found");
     }
 
     await Promise.all(

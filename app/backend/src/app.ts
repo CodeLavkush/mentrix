@@ -47,6 +47,8 @@ import chatRouter from "./routes/chat.route.js"
 import quizRouter from "./routes/quiz.route.js"
 import quizQuestionsRouter from "./routes/quizQuestions.route.js"
 import quizAttemptsRouter from "./routes/quizAttempts.route.js"
+import flashcardSetsRouter from "./routes/flashcardSets.routes.js"
+import flashcardsRouter from "./routes/flashcards.route.js"
 
 setupSwagger(app); // swagger docs endpoint
 app.use("/api/v1/healthcheck", healthCheckRouter)
@@ -57,6 +59,8 @@ app.use("/api/v1/chat", chatRouter)
 app.use("/api/v1/quiz", quizRouter)
 app.use("/api/v1/quiz-questions", quizQuestionsRouter)
 app.use("/api/v1/quiz-attempts", quizAttemptsRouter)
+app.use("/api/v1/flashcardsets", flashcardSetsRouter)
+app.use("/api/v1/flashcards", flashcardsRouter)
 
 app.use(errorMiddleware)
 
