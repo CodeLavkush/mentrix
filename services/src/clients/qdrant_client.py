@@ -87,10 +87,14 @@ class QdrantService:
                 if not page_content:
                     continue
 
-                chunk_index = metadata.get(
-                    "chunk_index",
-                    0,
-                )
+                chunk_index = metadata.get("chunk_index")
+
+                if chunk_index is None:
+                    logger.warning(
+                        f"Skipping chunk without chunk_index "
+                        f"for document: {document_id}"
+                    )
+                    continue
 
                 chunks.append(
                     (
@@ -105,7 +109,9 @@ class QdrantService:
             offset = next_offset
 
         # Restore original document order
-        chunks.sort(key=lambda item: item[0])
+        chunks.sort(
+            key=lambda item: item[0]
+        )
 
         result = [
             content

@@ -6,13 +6,9 @@ import { Router } from "express"
 
 const router: Router = Router()
 
-
-router
-    .route("/")
-    .post(verifyJWT, quizValidator(), validate, createQuiz)
-
 router
     .route("/:documentId")
+    .post(verifyJWT, quizValidator(), validate, createQuiz)
     .get(verifyJWT, getAllQuizzes)
     .delete(verifyJWT, deleteQuizzes)
 

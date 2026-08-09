@@ -79,7 +79,7 @@ const quizValidator = () => {
             .isString(),
         body("difficulty")
             .isString(),
-        body("total_questions")
+        body("totalQuestions")
             .isNumeric(),
     ]
 }

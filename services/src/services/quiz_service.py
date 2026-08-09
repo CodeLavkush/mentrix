@@ -1,3 +1,5 @@
+import random
+
 from src.clients.gemini_client import gemini_service
 from src.clients.qdrant_client import qdrant_service
 from src.utils.logger import logger
@@ -8,6 +10,61 @@ class QuizService:
     Generates quizzes from processed document content
     stored in Qdrant.
     """
+
+    # Number of chunks to use as context for quiz generation.
+    # The document is divided into this many sections and
+    # one random chunk is selected from each section.
+    MAX_CONTEXT_CHUNKS = 30
+
+    def _select_random_chunks_by_section(
+        self,
+        chunks: list,
+        max_chunks: int = MAX_CONTEXT_CHUNKS,
+    ) -> list:
+        """
+        Select one random chunk from each section of the document.
+
+        This provides:
+        - Randomness between quiz generations
+        - Coverage across the entire document
+        - No arbitrary character truncation
+
+        Important:
+        `chunks` must be returned in document order.
+        """
+
+        if not chunks:
+            return []
+
+        # If the document has fewer chunks than our limit,
+        # use all chunks.
+        if len(chunks) <= max_chunks:
+            return chunks
+
+        selected_chunks = []
+
+        # Divide the document into approximately equal sections.
+        section_size = len(chunks) / max_chunks
+
+        for section_index in range(max_chunks):
+            start = int(section_index * section_size)
+
+            if section_index == max_chunks - 1:
+                end = len(chunks)
+            else:
+                end = int((section_index + 1) * section_size)
+
+            section = chunks[start:end]
+
+            if not section:
+                continue
+
+            # Select one random chunk from this section.
+            selected_chunk = random.choice(section)
+
+            selected_chunks.append(selected_chunk)
+
+        return selected_chunks
 
     def generate_quiz(
         self,
@@ -46,29 +103,36 @@ class QuizService:
         )
 
         # --------------------------------------------------
-        # 2. Build context
+        # 2. Select representative random chunks
+        # --------------------------------------------------
+
+        selected_chunks = self._select_random_chunks_by_section(
+            chunks=chunks,
+            max_chunks=self.MAX_CONTEXT_CHUNKS,
+        )
+
+        logger.info(
+            f"Selected {len(selected_chunks)} random chunks "
+            f"across the document for quiz generation."
+        )
+
+        # --------------------------------------------------
+        # 3. Build context
         # --------------------------------------------------
 
         context = "\n\n".join(
             f"--- Study Material {index + 1} ---\n{chunk}"
-            for index, chunk in enumerate(chunks)
+            for index, chunk in enumerate(selected_chunks)
         )
 
-        # Prevent excessively large Gemini requests.
-        max_context_length = 100_000
-
-        if len(context) > max_context_length:
-
-            logger.warning(
-                f"Document context is too large "
-                f"({len(context)} characters). "
-                f"Truncating to {max_context_length} characters."
-            )
-
-            context = context[:max_context_length]
+        logger.info(
+            f"Quiz context prepared | "
+            f"chunks={len(selected_chunks)} | "
+            f"characters={len(context)}"
+        )
 
         # --------------------------------------------------
-        # 3. Gemini prompt
+        # 4. Gemini prompt
         # --------------------------------------------------
 
         prompt = f"""
@@ -96,15 +160,18 @@ QUIZ REQUIREMENTS:
 DIFFICULTY GUIDELINES:
 
 EASY:
+
 - Test basic definitions, facts, terminology, and direct concepts.
 - Focus mainly on recall and basic understanding.
 
 MEDIUM:
+
 - Test understanding of concepts.
 - Test relationships between concepts.
 - Include simple application and comparison questions.
 
 HARD:
+
 - Test deeper understanding.
 - Include reasoning, comparison, analysis, and application.
 - Questions should require careful understanding of the material.
@@ -114,6 +181,7 @@ IMPORTANT:
 Return ONLY valid JSON.
 
 Do NOT include:
+
 - Markdown
 - ```json
 - ```
@@ -123,17 +191,17 @@ Do NOT include:
 The JSON MUST follow this EXACT structure:
 
 {{
-    "questions": [
-        {{
-            "question": "Question text",
-            "option_a": "Option A text",
-            "option_b": "Option B text",
-            "option_c": "Option C text",
-            "option_d": "Option D text",
-            "correct_option": "A",
-            "explanation": "Short explanation of the correct answer."
-        }}
-    ]
+"questions": [
+{{
+"question": "Question text",
+"option_a": "Option A text",
+"option_b": "Option B text",
+"option_c": "Option C text",
+"option_d": "Option D text",
+"correct_option": "A",
+"explanation": "Short explanation of the correct answer."
+}}
+]
 }}
 
 JSON RULES:
@@ -157,7 +225,7 @@ STUDY MATERIAL:
 """
 
         # --------------------------------------------------
-        # 4. Generate quiz using Gemini
+        # 5. Generate quiz using Gemini
         # --------------------------------------------------
 
         logger.info(
@@ -169,11 +237,10 @@ STUDY MATERIAL:
         )
 
         # --------------------------------------------------
-        # 5. Validate top-level response
+        # 6. Validate top-level response
         # --------------------------------------------------
 
         if not isinstance(quiz, dict):
-
             raise RuntimeError(
                 "Gemini returned an invalid quiz response."
             )
@@ -181,18 +248,16 @@ STUDY MATERIAL:
         questions = quiz.get("questions")
 
         if not isinstance(questions, list):
-
             raise RuntimeError(
                 "Gemini response does not contain a valid "
                 "'questions' array."
             )
 
         # --------------------------------------------------
-        # 6. Validate number of questions
+        # 7. Validate number of questions
         # --------------------------------------------------
 
         if len(questions) != total_questions:
-
             logger.warning(
                 f"Expected {total_questions} questions, "
                 f"but Gemini returned {len(questions)}."
@@ -204,7 +269,7 @@ STUDY MATERIAL:
             )
 
         # --------------------------------------------------
-        # 7. Validate individual questions
+        # 8. Validate individual questions
         # --------------------------------------------------
 
         validated_questions = []
@@ -232,7 +297,6 @@ STUDY MATERIAL:
         ):
 
             if not isinstance(question, dict):
-
                 raise RuntimeError(
                     f"Question {index} has an invalid structure."
                 )
@@ -244,7 +308,6 @@ STUDY MATERIAL:
             )
 
             if missing_fields:
-
                 raise RuntimeError(
                     f"Question {index} is missing fields: "
                     f"{', '.join(missing_fields)}"
@@ -260,11 +323,12 @@ STUDY MATERIAL:
             ]
 
             for field in text_fields:
-
                 value = question.get(field)
 
-                if not isinstance(value, str) or not value.strip():
-
+                if (
+                    not isinstance(value, str)
+                    or not value.strip()
+                ):
                     raise RuntimeError(
                         f"Question {index} contains "
                         f"an invalid '{field}'."
@@ -276,7 +340,6 @@ STUDY MATERIAL:
             )
 
             if correct_option not in valid_options:
-
                 raise RuntimeError(
                     f"Question {index} has an invalid "
                     f"correct_option: {correct_option}"
@@ -288,7 +351,6 @@ STUDY MATERIAL:
             )
 
             if explanation is not None:
-
                 if (
                     not isinstance(explanation, str)
                     or not explanation.strip()
@@ -321,7 +383,7 @@ STUDY MATERIAL:
             )
 
         # --------------------------------------------------
-        # 8. Final response
+        # 9. Final response
         # --------------------------------------------------
 
         logger.info(
