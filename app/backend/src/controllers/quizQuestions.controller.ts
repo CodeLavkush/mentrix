@@ -49,7 +49,7 @@ const getAllQuizQuestions: RequestHandler = asyncHandler(async (req, res) => {
         }
     })
 
-    if (quizQuestions.length < 0) {
+    if (quizQuestions.length === 0) {
         throw new ApiError(404, "Quiz questions not found.")
     }
 

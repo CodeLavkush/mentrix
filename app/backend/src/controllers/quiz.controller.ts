@@ -4,7 +4,6 @@ import type { RequestHandler } from "express"
 import { prisma } from "../db/prisma.js"
 import { ApiError } from "../utils/api-error.js"
 import type { Question } from "../types/quiz/index.js"
-import { logger } from "../utils/logger.js"
 import { createQuizQuestion } from "./quizQuestions.controller.js"
 
 
@@ -97,13 +96,15 @@ const createQuiz: RequestHandler = asyncHandler(async (req, res) => {
 
     const result = await response.json();
 
-    if (result?.questions?.length < 0) {
+    if (result?.questions?.length === 0) {
         throw new ApiError(404, "Quiz questions not found");
     }
 
-    result.questions?.map(async (question: Question) => {
-        createQuizQuestion(question, quiz.id)
-    })
+    await Promise.all(
+        result.questions?.map(async (question: Question) => {
+            createQuizQuestion(question, quiz.id)
+        })
+    )
 
     return res
         .status(201)
@@ -155,7 +156,7 @@ const getAllQuizzes: RequestHandler = asyncHandler(async (req, res) => {
         }
     })
 
-    if (quizzes.length < 0) {
+    if (quizzes.length === 0) {
         throw new ApiError(404, "Quizzes not found.")
     }
 
@@ -336,7 +337,7 @@ const deleteQuizzes: RequestHandler = asyncHandler(async (req, res) => {
         }
     })
 
-    if (!deletedQuizzes) {
+    if (deletedQuizzes.count === 0) {
         throw new ApiError(404, "Quizzes failed to delete.")
     }
 
@@ -351,6 +352,7 @@ const deleteQuizzes: RequestHandler = asyncHandler(async (req, res) => {
         )
 
 })
+
 export {
     createQuiz,
     getAllQuizzes,

@@ -84,9 +84,23 @@ const quizValidator = () => {
     ]
 }
 
+const quizAttemptsValidator = () => {
+    return [
+        body("score")
+            .isNumeric(),
+        body("totalMarks")
+            .isNumeric(),
+        body("percentage")
+            .isDecimal(),
+        body("timeTaken")
+            .isNumeric(),
+    ]
+}
+
 export {
     registerUserValidator,
     loginValidator,
     profileValidator,
-    quizValidator
+    quizValidator,
+    quizAttemptsValidator
 }

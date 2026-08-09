@@ -41,6 +41,20 @@ export const mockDocumentsDelete: Mock<any> = jest.fn();
 export const mockChatMessagesCreate: Mock<any> = jest.fn();
 export const mockChatMessagesFindMany: Mock<any> = jest.fn();
 
+// Quizzes
+export const mockQuizzesCreate: Mock<any> = jest.fn();
+export const mockQuizzesFindMany: Mock<any> = jest.fn();
+export const mockQuizzesFindFirst: Mock<any> = jest.fn();
+export const mockQuizzesDelete: Mock<any> = jest.fn();
+export const mockQuizzesDeleteMany: Mock<any> = jest.fn();
+
+// Quiz Attempts
+export const mockQuizAttemptsCreate: Mock<any> = jest.fn();
+export const mockQuizAttemptsFindMany: Mock<any> = jest.fn();
+
+// Quiz questions
+export const mockQuizQuestionsFindMany: Mock<any> = jest.fn();
+
 export function setupPrismaMock() {
     jest.unstable_mockModule(
         "../../db/prisma.js",
@@ -66,7 +80,21 @@ export function setupPrismaMock() {
                 chatMessages: {
                     create: mockChatMessagesCreate,
                     findMany: mockChatMessagesFindMany
-                }
+                },
+                quizzes: {
+                    create: mockQuizzesCreate,
+                    findMany: mockQuizzesFindMany,
+                    findFirst: mockQuizzesFindFirst,
+                    delete: mockQuizzesDelete,
+                    deleteMany: mockQuizzesDeleteMany,
+                },
+                quizAttempts: {
+                    create: mockQuizAttemptsCreate,
+                    findMany: mockQuizAttemptsFindMany,
+                },
+                quizQuestions: {
+                    findMany: mockQuizQuestionsFindMany,
+                },
             },
         })
     );
