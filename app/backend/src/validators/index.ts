@@ -107,6 +107,34 @@ const flashcardSetValidator = () => {
             .isNumeric(),
     ]
 }
+
+const flashcardProgressValidator = () => {
+    return [
+        body("reviewCount")
+            .isNumeric(),
+        body("correctCount")
+            .isNumeric(),
+        body("masteryLevel")
+            .isDecimal()
+    ]
+}
+
+const noteValidator = () => {
+    return [
+        body("title")
+            .isString(),
+    ]
+}
+
+const whiteboardValidator = () => {
+    return [
+        body("title")
+            .isString(),
+        body("drawingData")
+            .isJSON(),
+    ]
+}
+
 export {
     registerUserValidator,
     loginValidator,
@@ -114,4 +142,7 @@ export {
     quizValidator,
     quizAttemptsValidator,
     flashcardSetValidator,
+    flashcardProgressValidator,
+    noteValidator,
+    whiteboardValidator
 }

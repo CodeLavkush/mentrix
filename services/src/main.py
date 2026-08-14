@@ -7,8 +7,11 @@ from src.api.chat import router as chat_router
 from src.api.routes import router as document_router
 from src.api.quiz import router as quiz_router
 from src.api.flashcard import router as flashcard_router
+from src.api.notes import router as notes_router
+
 from src.clients.minio_client import minio_client
 from src.clients.qdrant_client import qdrant_service
+
 from src.utils.config import settings
 from src.utils.logger import logger
 
@@ -70,6 +73,12 @@ app.include_router(
     flashcard_router,
     prefix=settings.API_PREFIX,
     tags=["Flashcard"],
+)
+
+app.include_router(
+    notes_router,
+    prefix=settings.API_PREFIX,
+    tags=["Notes"],
 )
 
 @app.get("/", tags=["Root"])
