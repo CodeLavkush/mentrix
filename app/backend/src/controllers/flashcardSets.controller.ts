@@ -1,7 +1,6 @@
 import { ApiResponse } from "../utils/api-response.js"
 import { asyncHandler } from "../utils/async-handler.js"
 import type { RequestHandler } from "express"
-import { prisma } from "../db/prisma.js"
 import { ApiError } from "../utils/api-error.js"
 import type { Flashcard } from "../types/flashcard/index.js"
 import { createFlashcard } from "./flashcard.controller.js"

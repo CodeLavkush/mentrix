@@ -1,6 +1,5 @@
 import type { RequestHandler } from "express";
 import { asyncHandler } from "../utils/async-handler.js";
-import { prisma } from "../db/prisma.js";
 import { ApiError } from "../utils/api-error.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { documentQuery } from "../queries/document.query.js";

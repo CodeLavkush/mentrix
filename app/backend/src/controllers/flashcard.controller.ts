@@ -1,5 +1,4 @@
 import type { RequestHandler } from "express"
-import { prisma } from "../db/prisma.js"
 import type { Flashcard } from "../types/flashcard/index.js"
 import { logger } from "../utils/logger.js"
 import { asyncHandler } from "../utils/async-handler.js"
