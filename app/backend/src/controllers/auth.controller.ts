@@ -9,14 +9,14 @@ import { sendEmail, emailVerificationMailgenContent } from "../utils/mail.js"
 import jwt from "jsonwebtoken"
 import { generateAccessAndRefreshTokens } from "../utils/generate-tokens.js"
 import { otpKey, generateOTP } from "../utils/generate-otp.js"
-import { userQuery } from "../query/user.query.js"
+import { userQuery } from "../queries/user.query.js"
 
 
 const registerUser: RequestHandler = asyncHandler(async (req, res) => {
     const { username, gender, age, email, password } = req.body
 
 
-    await userQuery.isUserAlreadyExists({
+    await userQuery.mustNotExist({
         where: {
             OR: [
                 { email },
@@ -26,7 +26,7 @@ const registerUser: RequestHandler = asyncHandler(async (req, res) => {
         select: {
             id: true,
         },
-    }, 409, "User already exists.")
+    }, 409, "User already exists")
 
     let avatarKey: string | null = null;
 
@@ -42,7 +42,7 @@ const registerUser: RequestHandler = asyncHandler(async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    const user = await userQuery.isUserCreated({
+    const user = await userQuery.createOrThrow({
         data: {
             username,
             gender,
@@ -62,7 +62,7 @@ const registerUser: RequestHandler = asyncHandler(async (req, res) => {
             isEmailVerified: true,
             avatarKey: true,
         }
-    }, 404, "Failed to create user.")
+    }, 404, "Failed to create user")
 
     const avatarUrl = user.avatarKey
         ? await getFileUrl(user.avatarKey)
@@ -78,7 +78,7 @@ const registerUser: RequestHandler = asyncHandler(async (req, res) => {
         mailgenContent: emailVerificationMailgenContent(user.username, `${otp}`),
     })
 
-    const createdUser = await userQuery.isUserUnique({
+    const createdUser = await userQuery.findFirstOrThrow({
         where: {
             id: user.id,
         },
@@ -112,7 +112,7 @@ const loginUser: RequestHandler = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Email and password are required")
     }
 
-    const user = await userQuery.isUserUnique({
+    const user = await userQuery.findUniqueOrThrow({
         where: { email },
         select: {
             id: true,
@@ -124,7 +124,7 @@ const loginUser: RequestHandler = asyncHandler(async (req, res) => {
             email: true,
             refreshToken: true
         }
-    }, 401, "User does not exists.")
+    }, 401, "User does not exist")
 
 
     const isPasswordValid = await bcrypt.compare(password, user.password)
@@ -135,7 +135,7 @@ const loginUser: RequestHandler = asyncHandler(async (req, res) => {
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user)
 
-    const loggedInUser = await userQuery.isUserExists({
+    const loggedInUser = await userQuery.findFirstOrThrow({
         where: {
             id: user.id
         },
@@ -148,10 +148,10 @@ const loginUser: RequestHandler = asyncHandler(async (req, res) => {
             isEmailVerified: true,
             avatarKey: true
         }
-    }, 404, "User does not exists.")
+    }, 404, "User does not exist")
 
-    const avatarUrl = loggedInUser!.avatarKey
-        ? await getFileUrl(loggedInUser!.avatarKey)
+    const avatarUrl = loggedInUser.avatarKey
+        ? await getFileUrl(loggedInUser.avatarKey)
         : null;
 
     const options: CookieOptions = {
@@ -242,7 +242,7 @@ const getCurrentUser: RequestHandler = asyncHandler(async (req, res) => {
 const verifyEmail: RequestHandler = asyncHandler(async (req, res) => {
     const { otp, email } = req.body
 
-    const user = await userQuery.isUserExists({
+    const user = await userQuery.findUniqueOrThrow({
         where: {
             email
         },
@@ -291,7 +291,7 @@ const verifyEmail: RequestHandler = asyncHandler(async (req, res) => {
 })
 
 const resendEmailVerification: RequestHandler = asyncHandler(async (req, res) => {
-    const user = await userQuery.isUserExists({
+    const user = await userQuery.findFirstOrThrow({
         where: {
             id: req.user?.id
         },
@@ -301,7 +301,7 @@ const resendEmailVerification: RequestHandler = asyncHandler(async (req, res) =>
             email: true,
             isEmailVerified: true,
         }
-    }, 404, "User does not exists")
+    }, 404, "User does not exist")
 
     if (user.isEmailVerified) {
         throw new ApiError(404, "Email is already verified")
@@ -343,7 +343,7 @@ const refreshAccessToken: RequestHandler = asyncHandler(async (req, res) => {
 
         const decodedToken: any = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET!)
 
-        const user = await userQuery.isUserExists({
+        const user = await userQuery.findFirstOrThrow({
             where: {
                 id: decodedToken?.id
             },

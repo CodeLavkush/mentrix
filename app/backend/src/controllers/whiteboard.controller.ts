@@ -5,24 +5,26 @@ import { ApiResponse } from "../utils/api-response.js"
 import { type RequestHandler } from "express"
 import { uploadFile } from '../services/storage.service.js'
 import type { InputJsonValue } from '@prisma/client/runtime/client'
+import { whiteboardQuery } from '../queries/whiteboard.query.js'
+import { userQuery } from '../queries/user.query.js'
 
 
 const createWhiteboard: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
     const { title, drawingData } = req.body
 
-    const user = await prisma.user.findFirst({
-        where: {
-            id: userId,
+    await userQuery.findFirstOrThrow(
+        {
+            where: {
+                id: userId
+            },
+            select: {
+                id: true
+            }
         },
-        select: {
-            id: true
-        }
-    })
-
-    if (!user) {
-        throw new ApiError(404, "User not found.")
-    }
+        404,
+        "User does not exists."
+    )
 
     let thumbnail: string | null = null;
 
@@ -36,32 +38,32 @@ const createWhiteboard: RequestHandler = asyncHandler(async (req, res) => {
         );
     }
 
-    const whiteboard = await prisma.whiteboards.create({
-        data: {
-            userId,
-            title: title as string,
-            drawingData: drawingData as InputJsonValue,
-            thumbnail,
-        },
-        select: {
-            id: true,
-            title: true,
-            drawingData: true,
-            thumbnail: true,
-            user: {
-                select: {
-                    id: true,
-                    username: true,
-                }
+    const whiteboard = await whiteboardQuery.createOrThrow(
+        {
+            data: {
+                userId,
+                title: title as string,
+                drawingData: drawingData as InputJsonValue,
+                thumbnail,
             },
-            createdAt: true,
-            updatedAt: true
-        }
-    })
-
-    if (!whiteboard) {
-        throw new ApiError(404, "Whiteboard creation failed.")
-    }
+            select: {
+                id: true,
+                title: true,
+                drawingData: true,
+                thumbnail: true,
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                    }
+                },
+                createdAt: true,
+                updatedAt: true
+            }
+        },
+        404,
+        "Whiteboard creation failed."
+    )
 
     return res
         .status(201)
@@ -77,20 +79,20 @@ const createWhiteboard: RequestHandler = asyncHandler(async (req, res) => {
 const getAllWhiteboards: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
 
-    const user = await prisma.user.findFirst({
-        where: {
-            id: userId,
+    await userQuery.findFirstOrThrow(
+        {
+            where: {
+                id: userId
+            },
+            select: {
+                id: true
+            }
         },
-        select: {
-            id: true
-        }
-    })
+        404,
+        "User does not exists."
+    )
 
-    if (!user) {
-        throw new ApiError(404, "User not found.")
-    }
-
-    const whiteboards = await prisma.whiteboards.findMany({
+    const whiteboards = await whiteboardQuery.findMany({
         where: {
             userId,
         },
@@ -129,43 +131,43 @@ const getWhiteboardById: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
     const { whiteboardId } = req.params
 
-    const user = await prisma.user.findFirst({
-        where: {
-            id: userId,
-        },
-        select: {
-            id: true
-        }
-    })
-
-    if (!user) {
-        throw new ApiError(404, "User not found.")
-    }
-
-    const whiteboard = await prisma.whiteboards.findFirst({
-        where: {
-            id: whiteboardId as string,
-            userId,
-        },
-        select: {
-            id: true,
-            title: true,
-            drawingData: true,
-            thumbnail: true,
-            user: {
-                select: {
-                    id: true,
-                    username: true,
-                }
+    await userQuery.findFirstOrThrow(
+        {
+            where: {
+                id: userId
             },
-            createdAt: true,
-            updatedAt: true
-        }
-    })
+            select: {
+                id: true
+            }
+        },
+        404,
+        "User does not exists."
+    )
 
-    if (!whiteboard) {
-        throw new ApiError(404, "Whiteboard failed to fetched.")
-    }
+    const whiteboard = await whiteboardQuery.findFirstOrThrow(
+        {
+            where: {
+                id: whiteboardId as string,
+                userId,
+            },
+            select: {
+                id: true,
+                title: true,
+                drawingData: true,
+                thumbnail: true,
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                    }
+                },
+                createdAt: true,
+                updatedAt: true
+            }
+        },
+        404,
+        "Whiteboard failed to fetched."
+    )
 
     return res
         .status(200)
@@ -182,39 +184,41 @@ const deleteWhiteboardById: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
     const { whiteboardId } = req.params
 
-    const user = await prisma.user.findFirst({
-        where: {
-            id: userId,
-        },
-        select: {
-            id: true
-        }
-    })
-
-    if (!user) {
-        throw new ApiError(404, "User not found.")
-    }
-
-    const deletedWhiteboard = await prisma.whiteboards.delete({
-        where: {
-            id: whiteboardId as string,
-            userId,
-        },
-        select: {
-            id: true,
-            title: true,
-            drawingData: true,
-            thumbnail: true,
-            user: {
-                select: {
-                    id: true,
-                    username: true,
-                }
+    await userQuery.findFirstOrThrow(
+        {
+            where: {
+                id: userId
             },
-            createdAt: true,
-            updatedAt: true
+            select: {
+                id: true
+            }
+        },
+        404,
+        "User does not exists."
+    )
+
+    const deletedWhiteboard = await whiteboardQuery.delete(
+        {
+            where: {
+                id: whiteboardId as string,
+                userId,
+            },
+            select: {
+                id: true,
+                title: true,
+                drawingData: true,
+                thumbnail: true,
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                    }
+                },
+                createdAt: true,
+                updatedAt: true
+            }
         }
-    })
+    )
 
     if (!deletedWhiteboard) {
         throw new ApiError(404, "Failed to delete whiteboard.")
@@ -234,24 +238,26 @@ const deleteWhiteboardById: RequestHandler = asyncHandler(async (req, res) => {
 const deleteWhiteboards: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
 
-    const user = await prisma.user.findFirst({
-        where: {
-            id: userId,
+    await userQuery.findFirstOrThrow(
+        {
+            where: {
+                id: userId
+            },
+            select: {
+                id: true
+            }
         },
-        select: {
-            id: true
-        }
-    })
+        404,
+        "User does not exists."
+    )
 
-    if (!user) {
-        throw new ApiError(404, "User not found.")
-    }
-
-    const deletedWhiteboards = await prisma.whiteboards.deleteMany({
-        where: {
-            userId,
+    const deletedWhiteboards = await whiteboardQuery.deleteMany(
+        {
+            where: {
+                userId,
+            }
         }
-    })
+    )
 
     if (deletedWhiteboards.count === 0) {
         throw new ApiError(404, "Whiteboards failed to delete.")

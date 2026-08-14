@@ -7,23 +7,21 @@ import { ApiError } from "../utils/api-error.js"
 import { documentProcessingQueue } from "../queues/document.queue.js"
 import { randomUUID } from "crypto"
 import { serializeBigInt } from "../utils/serialize.js"
+import { userQuery } from "../queries/user.query.js"
+import { documentQuery } from "../queries/document.query.js"
 
 
 const uploadDocument: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
 
-    const user = await prisma.user.findFirst({
+    await userQuery.findFirstOrThrow({
         where: {
             id: userId,
         },
         select: {
             id: true
         }
-    })
-
-    if (!user) {
-        throw new ApiError(404, "User does not exists")
-    }
+    }, 404, "User does not exists")
 
     const document = req.file
 
@@ -43,33 +41,33 @@ const uploadDocument: RequestHandler = asyncHandler(async (req, res) => {
 
     const fileMetaData = await getFileMetadata(storagePath)
 
-    const uploadedDocument = await prisma.documents.create({
-        data: {
-            userId,
-            fileName: document.originalname,
-            fileType: document.mimetype,
-            fileSize: fileMetaData.size,
-            storagePath: storagePath,
-            uploadStatus: "PROCESSING"
-        },
-        select: {
-            id: true,
-            fileName: true,
-            fileType: true,
-            fileSize: true,
-            uploadStatus: true,
-            user: {
-                select: {
-                    id: true,
-                    username: true
+    const uploadedDocument = await documentQuery.createOrThrow(
+        {
+            data: {
+                userId,
+                fileName: document.originalname,
+                fileType: document.mimetype,
+                fileSize: fileMetaData.size,
+                storagePath: storagePath,
+                uploadStatus: "PROCESSING"
+            },
+            select: {
+                id: true,
+                fileName: true,
+                fileType: true,
+                fileSize: true,
+                uploadStatus: true,
+                user: {
+                    select: {
+                        id: true,
+                        username: true
+                    }
                 }
             }
-        }
-    })
-
-    if (!uploadedDocument) {
-        throw new ApiError(409, "Something went wrong while uploading the document")
-    }
+        },
+        409,
+        "Something went wrong while uploading the document"
+    )
 
     await documentProcessingQueue.add(
         "process-document",
@@ -105,39 +103,37 @@ const uploadDocument: RequestHandler = asyncHandler(async (req, res) => {
 const getDocumentsById: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
 
-    const user = await prisma.user.findFirst({
+    await userQuery.findFirstOrThrow({
         where: {
             id: userId,
         },
         select: {
             id: true
         }
-    })
+    }, 404, "User does not exists")
 
-    if (!user) {
-        throw new ApiError(404, "User does not exists")
-    }
-
-    const documents = await prisma.documents.findMany({
-        where: {
-            userId,
-        },
-        select: {
-            id: true,
-            fileName: true,
-            fileType: true,
-            fileSize: true,
-            uploadStatus: true,
-            user: {
-                select: {
-                    id: true,
-                    username: true
+    const documents = await documentQuery.findMany(
+        {
+            where: {
+                userId,
+            },
+            select: {
+                id: true,
+                fileName: true,
+                fileType: true,
+                fileSize: true,
+                uploadStatus: true,
+                user: {
+                    select: {
+                        id: true,
+                        username: true
+                    }
                 }
             }
         }
-    })
+    )
 
-    if (documents.length < 0) {
+    if (documents.length === 0) {
         throw new ApiError(404, "No documents found for the user")
     }
 
@@ -156,20 +152,16 @@ const deleteDocumentById: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
     const { documentId } = req.params
 
-    const user = await prisma.user.findFirst({
+    await userQuery.findFirstOrThrow({
         where: {
             id: userId,
         },
         select: {
             id: true
-        },
-    })
+        }
+    }, 404, "User does not exists")
 
-    if (!user) {
-        throw new ApiError(404, "User does not exists")
-    }
-
-    const document = await prisma.documents.findFirst({
+    const document = await documentQuery.findFirstOrThrow({
         where: {
             id: documentId as string,
             userId,
@@ -178,11 +170,7 @@ const deleteDocumentById: RequestHandler = asyncHandler(async (req, res) => {
             id: true,
             storagePath: true
         }
-    })
-
-    if (!document) {
-        throw new ApiError(404, "Document does not exists")
-    }
+    }, 404, "Document does not exists")
 
     const documentExists = await fileExists(document.storagePath)
 
@@ -191,7 +179,7 @@ const deleteDocumentById: RequestHandler = asyncHandler(async (req, res) => {
     }
 
     await deleteFile(document.storagePath)
-    const deletedDocument = await prisma.documents.delete({
+    const deletedDocument = await documentQuery.delete({
         where: {
             id: documentId as string
         },
@@ -229,34 +217,32 @@ const downloadDocumentById: RequestHandler = asyncHandler(async (req, res) => {
     const { documentId } = req.params;
     const userId = req.user?.id;
 
-    const user = await prisma.user.findFirst({
+
+    await userQuery.findFirstOrThrow({
         where: {
             id: userId,
         },
         select: {
             id: true
-        },
-    })
-
-    if (!user) {
-        throw new ApiError(404, "User does not exists")
-    }
-
-    const document = await prisma.documents.findFirst({
-        where: {
-            id: documentId as string,
-            userId,
-        },
-        select: {
-            id: true,
-            fileName: true,
-            storagePath: true,
         }
-    });
+    }, 404, "User does not exists")
 
-    if (!document) {
-        throw new ApiError(404, "Document does not exists")
-    }
+
+    const document = await documentQuery.findFirstOrThrow(
+        {
+            where: {
+                id: documentId as string,
+                userId,
+            },
+            select: {
+                id: true,
+                fileName: true,
+                storagePath: true,
+            }
+        },
+        404,
+        "Document does not exists"
+    )
 
     const metadata = await getFileMetadata(document.storagePath);
     const fileStream = await getFileStream(document.storagePath);

@@ -3,6 +3,8 @@ import { asyncHandler } from "../utils/async-handler.js";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../utils/api-error.js";
 import { ApiResponse } from "../utils/api-response.js";
+import { documentQuery } from "../queries/document.query.js";
+import { chatMessageQuery } from "../queries/chatMessage.query.js";
 
 
 const sendMessage: RequestHandler = asyncHandler(async (req, res) => {
@@ -10,35 +12,37 @@ const sendMessage: RequestHandler = asyncHandler(async (req, res) => {
     const { documentId } = req.params
     const { message } = req.body
 
-    const document = await prisma.documents.findFirst({
-        where: {
-            id: documentId as string,
+    const document = await documentQuery.findFirstOrThrow(
+        {
+            where: {
+                id: documentId as string,
+            },
+            select: {
+                id: true
+            }
         },
-        select: {
-            id: true
-        }
-    })
+        404,
+        "Document does not exsists"
+    )
 
-    if (!document) {
-        throw new ApiError(404, "Document does not exsists")
-    }
+    const userMessage = await chatMessageQuery.createOrThrow(
+        {
+            data: {
+                userId,
+                documentId: document.id,
+                sender: "USER",
+                message
+            },
+            select: {
+                id: true,
+                message: true,
+            }
 
-    const userMessage = await prisma.chatMessages.create({
-        data: {
-            userId,
-            documentId: documentId as string,
-            sender: "USER",
-            message
         },
-        select: {
-            id: true,
-            message: true,
-        }
-    })
+        404,
+        "Chat message cannot be sent"
+    )
 
-    if (!userMessage) {
-        throw new ApiError(404, "Chat message cannot be sent")
-    }
 
     const response = await fetch(
         `${process.env.AI_SERVICE_URL}/api/v1/internal/chat`,
@@ -68,22 +72,22 @@ const sendMessage: RequestHandler = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Answer not found");
     }
 
-    const aiMessage = await prisma.chatMessages.create({
-        data: {
-            userId,
-            documentId: documentId as string,
-            sender: "AI",
-            message: result?.answer
+    const aiMessage = await chatMessageQuery.createOrThrow(
+        {
+            data: {
+                userId,
+                documentId: documentId as string,
+                sender: "AI",
+                message: result?.answer
+            },
+            select: {
+                id: true,
+                message: true,
+            }
         },
-        select: {
-            id: true,
-            message: true,
-        }
-    })
-
-    if (!aiMessage) {
-        throw new ApiError(404, "AI won't be able to reply..")
-    }
+        404,
+        "AI won't be able to reply.."
+    )
 
     return res
         .status(201)
@@ -100,24 +104,23 @@ const getMessages: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
     const { documentId } = req.params
 
-    const document = await prisma.documents.findFirst({
-        where: {
-            id: documentId as string,
+    const document = await documentQuery.findFirstOrThrow(
+        {
+            where: {
+                id: documentId as string,
+            },
+            select: {
+                id: true
+            }
         },
-        select: {
-            id: true,
-            fileName: true,
-        }
-    })
+        404,
+        "Document does not exsists"
+    )
 
-    if (!document) {
-        throw new ApiError(404, "Document does not exsists")
-    }
-
-    const messages = await prisma.chatMessages.findMany({
+    const messages = await chatMessageQuery.findMany({
         where: {
             userId,
-            documentId: documentId as string,
+            documentId: document.id,
         },
         select: {
             id: true,
@@ -127,7 +130,7 @@ const getMessages: RequestHandler = asyncHandler(async (req, res) => {
         }
     })
 
-    if (messages.length < 0) {
+    if (messages.length === 0) {
         throw new ApiError(404, "Messages not found.")
     }
 

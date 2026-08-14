@@ -484,7 +484,7 @@ describe(
 
 
         it(
-            "should return 409 when quiz creation fails",
+            "should return 500 when quiz creation fails",
             async () => {
 
                 // User exists
@@ -525,13 +525,13 @@ describe(
 
                 expect(
                     response.status
-                ).toBe(409);
+                ).toBe(500);
 
 
                 expect(
-                    response.body.message
+                    response.body.success
                 ).toBe(
-                    "Quiz creation failed."
+                    false
                 );
 
 

@@ -5,41 +5,45 @@ import { prisma } from "../db/prisma.js"
 import { ApiError } from "../utils/api-error.js"
 import type { Flashcard } from "../types/flashcard/index.js"
 import { createFlashcard } from "./flashcard.controller.js"
+import { userQuery } from "../queries/user.query.js"
+import { quizAttemptQuery } from "../queries/quizAttempt.query.js"
+import { quizQuestionQuery } from "../queries/quizQuestion.query.js"
+import { flashcardSetQuery } from "../queries/flashcardset.query.js"
 
 const createFlashcardSet: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
     const { quizAttemptId } = req.params
     const { title, topic, totalCards } = req.body
 
-    const user = await prisma.user.findFirst({
-        where: {
-            id: userId
+    await userQuery.findFirstOrThrow(
+        {
+            where: {
+                id: userId
+            },
+            select: {
+                id: true
+            }
         },
-        select: {
-            id: true
-        }
-    })
+        404,
+        "User does not exists."
+    )
 
-    if (!user) {
-        throw new ApiError(404, "User does not exists.")
-    }
-
-    const quizAttempt = await prisma.quizAttempts.findFirst({
-        where: {
-            id: quizAttemptId as string,
-            userId,
+    const quizAttempt = await quizAttemptQuery.findFirstOrThrow(
+        {
+            where: {
+                id: quizAttemptId as string,
+                userId,
+            },
+            select: {
+                id: true,
+                quizId: true
+            }
         },
-        select: {
-            id: true,
-            quizId: true
-        }
-    })
+        404,
+        "Quiz attempt not found."
+    )
 
-    if (!quizAttempt) {
-        throw new ApiError(404, "Quiz attempt not found.")
-    }
-
-    const quizQuestions = await prisma.quizQuestions.findMany({
+    const quizQuestions = await quizQuestionQuery.findMany({
         where: {
             quizId: quizAttempt.quizId
         },
@@ -58,15 +62,16 @@ const createFlashcardSet: RequestHandler = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Quiz questions does not exists.")
     }
 
-    const flashcardsets = await prisma.flashcardSets.findFirst({
-        where: {
-            quizAttemptId: quizAttempt.id
-        },
-        select: {
-            id: true
+    const flashcardsets = await flashcardSetQuery.findFirst(
+        {
+            where: {
+                quizAttemptId: quizAttempt.id
+            },
+            select: {
+                id: true
+            }
         }
-    })
-
+    )
     if (flashcardsets) {
         throw new ApiError(404, "Flashcard sets already exists.")
     }
@@ -99,7 +104,7 @@ const createFlashcardSet: RequestHandler = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Flashcards not found");
     }
 
-    const flashcardSet = await prisma.flashcardSets.create({
+    const flashcardSet = await flashcardSetQuery.createOrThrow({
         data: {
             userId,
             quizAttemptId: quizAttempt.id,
@@ -125,11 +130,11 @@ const createFlashcardSet: RequestHandler = asyncHandler(async (req, res) => {
                 }
             }
         }
-    })
+    },
+        404,
+        "Flashcard set creation failed."
+    )
 
-    if (!flashcardSet) {
-        throw new ApiError(404, "Flashcard set creation failed.")
-    }
 
     await Promise.all(
         result.flashcards?.map(async (flashcard: Flashcard) => {
@@ -152,54 +157,56 @@ const getAllFlashcardSets: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
     const { quizAttemptId } = req.params
 
-    const user = await prisma.user.findFirst({
-        where: {
-            id: userId
-        },
-        select: {
-            id: true
-        }
-    })
-
-    if (!user) {
-        throw new ApiError(404, "User does not exists.")
-    }
-
-    const quizAttempt = await prisma.quizAttempts.findFirst({
-        where: {
-            id: quizAttemptId as string,
-            userId,
-        },
-        select: {
-            id: true,
-        }
-    })
-
-    if (!quizAttempt) {
-        throw new ApiError(404, "Quiz attempt not found.")
-    }
-
-    const flashcardSets = await prisma.flashcardSets.findMany({
-        where: {
-            userId,
-            quizAttemptId: quizAttempt.id,
-        },
-        select: {
-            id: true,
-            title: true,
-            topic: true,
-            totalCards: true,
-            quizAttemptId: true,
-            user: {
-                select: {
-                    id: true,
-                    username: true
-                }
+    await userQuery.findFirstOrThrow(
+        {
+            where: {
+                id: userId
             },
-            createdAt: true,
-            updatedAt: true
+            select: {
+                id: true
+            }
+        },
+        404,
+        "User does not exists."
+    )
+
+    const quizAttempt = await quizAttemptQuery.findFirstOrThrow(
+        {
+            where: {
+                id: quizAttemptId as string,
+                userId,
+            },
+            select: {
+                id: true,
+            }
+        },
+        404,
+        "Quiz attempt not found."
+    )
+
+    const flashcardSets = await flashcardSetQuery.findMany(
+        {
+            where: {
+                userId,
+                quizAttemptId: quizAttempt.id,
+            },
+            select: {
+                id: true,
+                title: true,
+                topic: true,
+                totalCards: true,
+                quizAttemptId: true,
+                user: {
+                    select: {
+                        id: true,
+                        username: true
+                    }
+                },
+                createdAt: true,
+                updatedAt: true
+            }
         }
-    })
+    )
 
     if (flashcardSets.length === 0) {
         throw new ApiError(404, "Flashcard sets not found.")
@@ -220,59 +227,59 @@ const getFlashcardSetsById: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
     const { quizAttemptId, flashcardSetsId } = req.params
 
-    const user = await prisma.user.findFirst({
-        where: {
-            id: userId
-        },
-        select: {
-            id: true
-        }
-    })
-
-    if (!user) {
-        throw new ApiError(404, "User does not exists.")
-    }
-
-    const quizAttempt = await prisma.quizAttempts.findFirst({
-        where: {
-            id: quizAttemptId as string,
-            userId,
-        },
-        select: {
-            id: true,
-        }
-    })
-
-    if (!quizAttempt) {
-        throw new ApiError(404, "Quiz attempt not found.")
-    }
-
-    const flashcardSets = await prisma.flashcardSets.findFirst({
-        where: {
-            userId,
-            quizAttemptId: quizAttempt.id,
-            id: flashcardSetsId as string,
-        },
-        select: {
-            id: true,
-            title: true,
-            topic: true,
-            totalCards: true,
-            quizAttemptId: true,
-            user: {
-                select: {
-                    id: true,
-                    username: true
-                }
+    await userQuery.findFirstOrThrow(
+        {
+            where: {
+                id: userId
             },
-            createdAt: true,
-            updatedAt: true
-        }
-    })
+            select: {
+                id: true
+            }
+        },
+        404,
+        "User does not exists."
+    )
 
-    if (!flashcardSets) {
-        throw new ApiError(404, "Flashcard sets not found")
-    }
+    const quizAttempt = await quizAttemptQuery.findFirstOrThrow(
+        {
+            where: {
+                id: quizAttemptId as string,
+                userId,
+            },
+            select: {
+                id: true,
+            }
+        },
+        404,
+        "Quiz attempt not found."
+    )
+
+    const flashcardSets = await flashcardSetQuery.findFirstOrThrow(
+        {
+            where: {
+                userId,
+                quizAttemptId: quizAttempt.id,
+                id: flashcardSetsId as string,
+            },
+            select: {
+                id: true,
+                title: true,
+                topic: true,
+                totalCards: true,
+                quizAttemptId: true,
+                user: {
+                    select: {
+                        id: true,
+                        username: true
+                    }
+                },
+                createdAt: true,
+                updatedAt: true
+            }
+        },
+        404,
+        "Flashcard sets not found"
+    )
 
     return res
         .status(200)
@@ -289,39 +296,41 @@ const deleteAllFlashcardSets: RequestHandler = asyncHandler(async (req, res) => 
     const userId = req.user?.id
     const { quizAttemptId } = req.params
 
-    const user = await prisma.user.findFirst({
-        where: {
-            id: userId
+    await userQuery.findFirstOrThrow(
+        {
+            where: {
+                id: userId
+            },
+            select: {
+                id: true
+            }
         },
-        select: {
-            id: true
-        }
-    })
+        404,
+        "User does not exists."
+    )
 
-    if (!user) {
-        throw new ApiError(404, "User does not exists.")
-    }
-
-    const quizAttempt = await prisma.quizAttempts.findFirst({
-        where: {
-            id: quizAttemptId as string,
-            userId,
+    const quizAttempt = await quizAttemptQuery.findFirstOrThrow(
+        {
+            where: {
+                id: quizAttemptId as string,
+                userId,
+            },
+            select: {
+                id: true,
+            }
         },
-        select: {
-            id: true,
-        }
-    })
+        404,
+        "Quiz attempt not found."
+    )
 
-    if (!quizAttempt) {
-        throw new ApiError(404, "Quiz attempt not found.")
-    }
-
-    const deletedFlashcardSets = await prisma.flashcardSets.deleteMany({
-        where: {
-            userId,
-            quizAttemptId: quizAttempt.id
+    const deletedFlashcardSets = await flashcardSetQuery.deleteMany(
+        {
+            where: {
+                userId,
+                quizAttemptId: quizAttempt.id
+            }
         }
-    })
+    )
 
     if (deletedFlashcardSets.count === 0) {
         throw new ApiError(404, "Flashcard sets falied to delete.")
@@ -342,40 +351,42 @@ const deleteFlashcardSetsById: RequestHandler = asyncHandler(async (req, res) =>
     const userId = req.user?.id
     const { quizAttemptId, flashcardSetsId } = req.params
 
-    const user = await prisma.user.findFirst({
-        where: {
-            id: userId
+    await userQuery.findFirstOrThrow(
+        {
+            where: {
+                id: userId
+            },
+            select: {
+                id: true
+            }
         },
-        select: {
-            id: true
-        }
-    })
+        404,
+        "User does not exists."
+    )
 
-    if (!user) {
-        throw new ApiError(404, "User does not exists.")
-    }
-
-    const quizAttempt = await prisma.quizAttempts.findFirst({
-        where: {
-            id: quizAttemptId as string,
-            userId,
+    const quizAttempt = await quizAttemptQuery.findFirstOrThrow(
+        {
+            where: {
+                id: quizAttemptId as string,
+                userId,
+            },
+            select: {
+                id: true,
+            }
         },
-        select: {
-            id: true,
-        }
-    })
+        404,
+        "Quiz attempt not found."
+    )
 
-    if (!quizAttempt) {
-        throw new ApiError(404, "Quiz attempt not found.")
-    }
-
-    const deletedFlashcardSets = await prisma.flashcardSets.delete({
-        where: {
-            id: flashcardSetsId as string,
-            quizAttemptId: quizAttempt.id,
-            userId,
+    const deletedFlashcardSets = await flashcardSetQuery.delete(
+        {
+            where: {
+                id: flashcardSetsId as string,
+                quizAttemptId: quizAttempt.id,
+                userId,
+            }
         }
-    })
+    )
 
     if (!deletedFlashcardSets) {
         throw new ApiError(404, "Flascard sets failed to delete.")

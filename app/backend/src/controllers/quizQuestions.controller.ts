@@ -1,14 +1,15 @@
 import { ApiResponse } from "../utils/api-response.js"
 import { asyncHandler } from "../utils/async-handler.js"
 import type { RequestHandler } from "express"
-import { prisma } from "../db/prisma.js"
 import { ApiError } from "../utils/api-error.js"
 import type { Question } from "../types/quiz/index.js"
 import { logger } from "../utils/logger.js"
+import { quizQuestionQuery } from "../queries/quizQuestion.query.js"
+import { quizQuery } from "../queries/quiz.query.js"
 
 const createQuizQuestion = async (question: Question, quizId: string) => {
     try {
-        await prisma.quizQuestions.create({
+        await quizQuestionQuery.create({
             data: {
                 quizId,
                 question: question.question!,
@@ -30,24 +31,26 @@ const createQuizQuestion = async (question: Question, quizId: string) => {
 const getAllQuizQuestions: RequestHandler = asyncHandler(async (req, res) => {
     const { quizId } = req.params
 
-    const quiz = await prisma.quizzes.findFirst({
-        where: {
-            id: quizId as string,
+    const quiz = await quizQuery.findFirstOrThrow(
+        {
+            where: {
+                id: quizId as string,
+            },
+            select: {
+                id: true
+            }
         },
-        select: {
-            id: true
-        }
-    })
+        404,
+        "Quiz does not exists."
+    )
 
-    if (!quiz) {
-        throw new ApiError(404, "Quiz does not exists.")
-    }
-
-    const quizQuestions = await prisma.quizQuestions.findMany({
-        where: {
-            quizId: quiz.id,
+    const quizQuestions = await quizQuestionQuery.findMany(
+        {
+            where: {
+                quizId: quiz.id,
+            }
         }
-    })
+    )
 
     if (quizQuestions.length === 0) {
         throw new ApiError(404, "Quiz questions not found.")

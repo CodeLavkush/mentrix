@@ -1,10 +1,12 @@
 import { ApiResponse } from "../utils/api-response.js"
 import { asyncHandler } from "../utils/async-handler.js"
 import type { RequestHandler } from "express"
-import { prisma } from "../db/prisma.js"
 import { ApiError } from "../utils/api-error.js"
 import type { Question } from "../types/quiz/index.js"
 import { createQuizQuestion } from "./quizQuestions.controller.js"
+import { userQuery } from "../queries/user.query.js"
+import { documentQuery } from "../queries/document.query.js"
+import { quizQuery } from "../queries/quiz.query.js"
 
 
 const createQuiz: RequestHandler = asyncHandler(async (req, res) => {
@@ -12,31 +14,31 @@ const createQuiz: RequestHandler = asyncHandler(async (req, res) => {
     const { documentId } = req.params
     const { quizTitle, difficulty, totalQuestions } = req.body
 
-    const user = await prisma.user.findFirst({
-        where: {
-            id: userId
+    await userQuery.findFirstOrThrow(
+        {
+            where: {
+                id: userId
+            },
+            select: {
+                id: true
+            }
         },
-        select: {
-            id: true
-        }
-    })
+        404,
+        "User does not exists."
+    )
 
-    if (!user) {
-        throw new ApiError(404, "User does not exists.")
-    }
-
-    const document = await prisma.documents.findFirst({
-        where: {
-            id: documentId as string
+    const document = await documentQuery.findFirstOrThrow(
+        {
+            where: {
+                id: documentId as string
+            },
+            select: {
+                id: true
+            }
         },
-        select: {
-            id: true
-        }
-    })
-
-    if (!document) {
-        throw new ApiError(404, "Document does not exsits.")
-    }
+        404,
+        "Document does not exsits."
+    )
 
     const response = await fetch(
         `${process.env.AI_SERVICE_URL}/api/v1/internal/quiz`,
@@ -67,38 +69,38 @@ const createQuiz: RequestHandler = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Quiz questions not found");
     }
 
-    const quiz = await prisma.quizzes.create({
-        data: {
-            userId,
-            documentId: document.id,
-            quizTitle,
-            difficulty,
-            totalQuestions,
+    const quiz = await quizQuery.createOrThrow(
+        {
+            data: {
+                userId,
+                documentId: document.id,
+                quizTitle,
+                difficulty,
+                totalQuestions,
+            },
+            select: {
+                id: true,
+                user: {
+                    select: {
+                        id: true,
+                        username: true
+                    }
+                },
+                document: {
+                    select: {
+                        id: true,
+                        fileName: true,
+                        fileType: true
+                    }
+                },
+                quizTitle: true,
+                difficulty: true,
+                totalQuestions: true
+            }
         },
-        select: {
-            id: true,
-            user: {
-                select: {
-                    id: true,
-                    username: true
-                }
-            },
-            document: {
-                select: {
-                    id: true,
-                    fileName: true,
-                    fileType: true
-                }
-            },
-            quizTitle: true,
-            difficulty: true,
-            totalQuestions: true
-        }
-    })
-
-    if (!quiz) {
-        throw new ApiError(409, "Quiz creation failed.")
-    }
+        409,
+        "Quiz creation failed."
+    )
 
     await Promise.all(
         result.questions?.map(async (question: Question) => {
@@ -122,39 +124,40 @@ const getAllQuizzes: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
     const { documentId } = req.params
 
-    const user = await prisma.user.findFirst({
-        where: {
-            id: userId
+    await userQuery.findFirstOrThrow(
+        {
+            where: {
+                id: userId
+            },
+            select: {
+                id: true
+            }
         },
-        select: {
-            id: true,
-            username: true,
-        }
-    })
+        404,
+        "User does not exists."
+    )
 
-    if (!user) {
-        throw new ApiError(404, "User does not found.")
-    }
-
-    const document = await prisma.documents.findFirst({
-        where: {
-            id: documentId as string,
+    const document = await documentQuery.findFirstOrThrow(
+        {
+            where: {
+                id: documentId as string
+            },
+            select: {
+                id: true
+            }
         },
-        select: {
-            id: true
-        }
-    })
+        404,
+        "Document does not exsits."
+    )
 
-    if (!document) {
-        throw new ApiError(404, "Document does not exsist.")
-    }
-
-    const quizzes = await prisma.quizzes.findMany({
-        where: {
-            userId,
-            documentId: document.id,
+    const quizzes = await quizQuery.findMany(
+        {
+            where: {
+                userId,
+                documentId: document.id,
+            }
         }
-    })
+    )
 
     if (quizzes.length === 0) {
         throw new ApiError(404, "Quizzes not found.")
@@ -175,63 +178,62 @@ const getQuizById: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
     const { documentId, quizId } = req.params
 
-    const user = await prisma.user.findFirst({
-        where: {
-            id: userId
-        },
-        select: {
-            id: true,
-            username: true,
-        }
-    })
-
-    if (!user) {
-        throw new ApiError(404, "User does not found.")
-    }
-
-    const document = await prisma.documents.findFirst({
-        where: {
-            id: documentId as string,
-        },
-        select: {
-            id: true
-        }
-    })
-
-    if (!document) {
-        throw new ApiError(404, "Document does not exsist.")
-    }
-
-    const quiz = await prisma.quizzes.findFirst({
-        where: {
-            id: quizId as string,
-            documentId: document.id,
-            userId,
-        },
-        select: {
-            id: true,
-            user: {
-                select: {
-                    id: true,
-                    username: true,
-                }
+    await userQuery.findFirstOrThrow(
+        {
+            where: {
+                id: userId
             },
-            document: {
-                select: {
-                    id: true,
-                    fileName: true,
-                }
-            },
-            quizTitle: true,
-            difficulty: true,
-            totalQuestions: true,
-            createdAt: true,
-        }
-    })
+            select: {
+                id: true
+            }
+        },
+        404,
+        "User does not exists."
+    )
 
-    if (!quiz) {
-        throw new ApiError(404, "Quiz not found.")
-    }
+    const document = await documentQuery.findFirstOrThrow(
+        {
+            where: {
+                id: documentId as string
+            },
+            select: {
+                id: true
+            }
+        },
+        404,
+        "Document does not exsits."
+    )
+
+    const quiz = await quizQuery.findFirstOrThrow(
+        {
+            where: {
+                id: quizId as string,
+                documentId: document.id,
+                userId,
+            },
+            select: {
+                id: true,
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                    }
+                },
+                document: {
+                    select: {
+                        id: true,
+                        fileName: true,
+                    }
+                },
+                quizTitle: true,
+                difficulty: true,
+                totalQuestions: true,
+                createdAt: true,
+            }
+        },
+        404,
+        "Quiz not found."
+    )
 
     return res
         .status(200)
@@ -248,40 +250,41 @@ const deleteQuizById: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
     const { documentId, quizId } = req.params
 
-    const user = await prisma.user.findFirst({
-        where: {
-            id: userId
+    await userQuery.findFirstOrThrow(
+        {
+            where: {
+                id: userId
+            },
+            select: {
+                id: true
+            }
         },
-        select: {
-            id: true,
-            username: true,
-        }
-    })
+        404,
+        "User does not exists."
+    )
 
-    if (!user) {
-        throw new ApiError(404, "User does not found.")
-    }
-
-    const document = await prisma.documents.findFirst({
-        where: {
-            id: documentId as string,
+    const document = await documentQuery.findFirstOrThrow(
+        {
+            where: {
+                id: documentId as string
+            },
+            select: {
+                id: true
+            }
         },
-        select: {
-            id: true
-        }
-    })
+        404,
+        "Document does not exsits."
+    )
 
-    if (!document) {
-        throw new ApiError(404, "Document does not exsist.")
-    }
-
-    const deletedQuiz = await prisma.quizzes.delete({
-        where: {
-            id: quizId as string,
-            documentId: document.id,
-            userId,
+    const deletedQuiz = await quizQuery.delete(
+        {
+            where: {
+                id: quizId as string,
+                documentId: document.id,
+                userId,
+            }
         }
-    })
+    )
 
     if (!deletedQuiz) {
         throw new ApiError(404, "Quiz failed to delete.")
@@ -303,39 +306,40 @@ const deleteQuizzes: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
     const { documentId } = req.params
 
-    const user = await prisma.user.findFirst({
-        where: {
-            id: userId
+    await userQuery.findFirstOrThrow(
+        {
+            where: {
+                id: userId
+            },
+            select: {
+                id: true
+            }
         },
-        select: {
-            id: true,
-            username: true,
-        }
-    })
+        404,
+        "User does not exists."
+    )
 
-    if (!user) {
-        throw new ApiError(404, "User does not found.")
-    }
-
-    const document = await prisma.documents.findFirst({
-        where: {
-            id: documentId as string,
+    const document = await documentQuery.findFirstOrThrow(
+        {
+            where: {
+                id: documentId as string
+            },
+            select: {
+                id: true
+            }
         },
-        select: {
-            id: true
-        }
-    })
+        404,
+        "Document does not exsits."
+    )
 
-    if (!document) {
-        throw new ApiError(404, "Document does not exsist.")
-    }
-
-    const deletedQuizzes = await prisma.quizzes.deleteMany({
-        where: {
-            documentId: document.id,
-            userId,
+    const deletedQuizzes = await quizQuery.deleteMany(
+        {
+            where: {
+                documentId: document.id,
+                userId,
+            }
         }
-    })
+    )
 
     if (deletedQuizzes.count === 0) {
         throw new ApiError(404, "Quizzes failed to delete.")

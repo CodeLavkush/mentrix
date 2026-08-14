@@ -51,9 +51,21 @@ export const mockQuizzesDeleteMany: Mock<any> = jest.fn();
 // Quiz Attempts
 export const mockQuizAttemptsCreate: Mock<any> = jest.fn();
 export const mockQuizAttemptsFindMany: Mock<any> = jest.fn();
+export const mockQuizAttemptsFindFirst: Mock<any> = jest.fn();
 
 // Quiz questions
 export const mockQuizQuestionsFindMany: Mock<any> = jest.fn();
+
+// Flashcard sets
+export const mockFlashcardSetsFindFirst: Mock<any> = jest.fn();
+export const mockFlashcardSetsCreate: Mock<any> = jest.fn();
+export const mockFlashcardSetsFindMany: Mock<any> = jest.fn();
+export const mockFlashcardSetsDeleteMany: Mock<any> = jest.fn();
+export const mockFlashcardSetsDelete: Mock<any> = jest.fn();
+
+//flashcards
+export const mockFlashcardsCreate: Mock<any> = jest.fn();
+export const mockFlashcardsFindMany: Mock<any> = jest.fn();
 
 export function setupPrismaMock() {
     jest.unstable_mockModule(
@@ -90,10 +102,22 @@ export function setupPrismaMock() {
                 },
                 quizAttempts: {
                     create: mockQuizAttemptsCreate,
+                    findFirst: mockQuizAttemptsFindFirst,
                     findMany: mockQuizAttemptsFindMany,
                 },
                 quizQuestions: {
                     findMany: mockQuizQuestionsFindMany,
+                },
+                flashcardSets: {
+                    findFirst: mockFlashcardSetsFindFirst,
+                    findMany: mockFlashcardSetsFindMany,
+                    create: mockFlashcardSetsCreate,
+                    deleteMany: mockFlashcardSetsDeleteMany,
+                    delete: mockFlashcardSetsDelete,
+                },
+                flashcards: {
+                    create: mockFlashcardsCreate,
+                    findMany: mockFlashcardsFindMany,
                 },
             },
         })
