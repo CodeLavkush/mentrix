@@ -10,11 +10,11 @@ const router: Router = Router()
 router
     .route("/:flashcardId")
     .post(verifyJWT, flashcardProgressValidator(), validate, createFlashcardProgress)
+    .get(verifyJWT, getAllFlashcardProgress)
     .delete(verifyJWT, deleteAllFlashcardProgress)
 
 router
     .route("/:flashcardId/:flashcardProgressId")
-    .get(verifyJWT, getAllFlashcardProgress)
     .delete(verifyJWT, deleteFlashcardProgressById)
 
 

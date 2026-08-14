@@ -80,7 +80,7 @@ const createFlashcardProgress: RequestHandler = asyncHandler(async (req, res) =>
 
 const getAllFlashcardProgress: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
-    const { flashcardId, flashcardProgressId } = req.params
+    const { flashcardId } = req.params
 
     await userQuery.findFirstOrThrow(
         {
@@ -110,7 +110,6 @@ const getAllFlashcardProgress: RequestHandler = asyncHandler(async (req, res) =>
 
     const flashcardProgress = await flashcardProgressQuery.findMany({
         where: {
-            id: flashcardProgressId as string,
             flashcardId: flashcard.id,
             userId
         },

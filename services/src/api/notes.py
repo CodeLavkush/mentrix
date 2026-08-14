@@ -12,7 +12,7 @@ note_service = get_note_service()
 
 class GenerateNoteRequest(BaseModel):
     title: str
-    documentId: str
+    document_Id: str
 
 
 @router.post("/internal/notes")
@@ -20,7 +20,7 @@ def generate_note(request: GenerateNoteRequest):
 
     try:
         content = note_service.generate_note(
-            document_id=request.documentId,
+            document_id=request.document_Id,
             title=request.title,
         )
 

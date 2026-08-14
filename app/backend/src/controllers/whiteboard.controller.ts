@@ -29,7 +29,7 @@ const createWhiteboard: RequestHandler = asyncHandler(async (req, res) => {
     let thumbnail: string | null = null;
 
     if (req.file) {
-        thumbnail = `users/whiteboard/${Date.now()}-${req.file.originalname}`;
+        thumbnail = `users/whiteboard/${userId}/${Date.now()}-${req.file.originalname}`;
 
         await uploadFile(
             thumbnail,

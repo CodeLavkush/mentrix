@@ -5,6 +5,7 @@ import { type RequestHandler } from "express"
 import { userQuery } from '../queries/user.query.js'
 import { documentQuery } from '../queries/document.query.js'
 import { noteQuery } from '../queries/note.query.js'
+import { serializeBigInt } from "../utils/serialize.js"
 
 
 const createNote: RequestHandler = asyncHandler(async (req, res) => {
@@ -173,7 +174,7 @@ const getAllNotes: RequestHandler = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(
                 200,
-                notes,
+                serializeBigInt(notes),
                 "Notes fetched successfully."
             )
         )
@@ -247,7 +248,7 @@ const getNoteById: RequestHandler = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(
                 200,
-                note,
+                serializeBigInt(note),
                 "Note fetched successfully."
             )
         )
