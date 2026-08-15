@@ -3,10 +3,13 @@ import fs from "node:fs";
 import yaml from "yaml";
 import swaggerUi from "swagger-ui-express";
 import type { Express } from "express";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export function setupSwagger(app: Express) {
     const file = fs.readFileSync(
-        path.join(process.cwd(), "src/docs/swagger.yml"),
+        path.join(__dirname, "swagger.yml"),
         "utf8"
     );
 

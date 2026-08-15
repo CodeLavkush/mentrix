@@ -20,6 +20,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
     networks:
       - mentrix-network
@@ -42,6 +43,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
     networks:
       - mentrix-network
@@ -69,6 +71,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+      start_period: 10s
 
     networks:
       - mentrix-network
@@ -88,6 +91,13 @@ services:
 
     volumes:
       - qdrant_data:/qdrant/storage
+
+    healthcheck:
+      test: [ "CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/6333' || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
     networks:
       - mentrix-network
@@ -118,14 +128,83 @@ services:
     ports:
       - "8000:8000"
 
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8000), 2)" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
     depends_on:
       minio:
         condition: service_healthy
       qdrant:
-        condition: service_started
+        condition: service_healthy
 
-    volumes:
-      - huggingface_cache:/root/.cache/huggingface
+    networks:
+      - mentrix-network
+
+  backend:
+    build:
+      context: ./app/backend
+      dockerfile: Dockerfile
+
+    image: mentrix-backend:latest
+
+    container_name: mentrix-backend
+    restart: unless-stopped
+
+    env_file:
+      - ./app/backend/.env
+
+    ports:
+      - "4000:4000"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+      redis:
+        condition: service_healthy
+
+      minio:
+        condition: service_healthy
+
+      qdrant:
+        condition: service_healthy
+
+      ai-service:
+        condition: service_healthy
+
+    networks:
+      - mentrix-network
+
+  worker:
+    image: mentrix-backend:latest
+
+    container_name: mentrix-worker
+    restart: unless-stopped
+
+    env_file:
+      - ./app/backend/.env
+
+    command: [ "node", "dist/workers/index.js" ]
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+      redis:
+        condition: service_healthy
+
+      minio:
+        condition: service_healthy
+
+      qdrant:
+        condition: service_healthy
+
+      ai-service:
+        condition: service_healthy
 
     networks:
       - mentrix-network
@@ -135,7 +214,6 @@ volumes:
   redis_data:
   minio_data:
   qdrant_data:
-  huggingface_cache:
 
 networks:
   mentrix-network:

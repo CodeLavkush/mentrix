@@ -9,6 +9,8 @@ import cors from 'cors'
 
 const app: Express = express();
 
+const apiPrefix = "/api/v1"
+
 app.set("trust proxy", 1)
 
 const limiter = rateLimit({
@@ -54,19 +56,19 @@ import notesRouter from "./routes/notes.route.js"
 import whiteboardRouter from "./routes/whiteboard.route.js"
 
 setupSwagger(app); // swagger docs endpoint
-app.use("/api/v1/healthcheck", healthCheckRouter)
-app.use("/api/v1/auth", authRouter)
-app.use("/api/v1/profile", profileRouter)
-app.use("/api/v1/document", documentRouter)
-app.use("/api/v1/chat", chatRouter)
-app.use("/api/v1/quiz", quizRouter)
-app.use("/api/v1/quiz-questions", quizQuestionsRouter)
-app.use("/api/v1/quiz-attempts", quizAttemptsRouter)
-app.use("/api/v1/flashcardsets", flashcardSetsRouter)
-app.use("/api/v1/flashcards", flashcardsRouter)
-app.use("/api/v1/flashcard-progress", flashcardProgressRouter)
-app.use("/api/v1/notes", notesRouter)
-app.use("/api/v1/whiteboard", whiteboardRouter)
+app.use(apiPrefix + "/healthcheck", healthCheckRouter)
+app.use(apiPrefix + "/auth", authRouter)
+app.use(apiPrefix + "/profile", profileRouter)
+app.use(apiPrefix + "/document", documentRouter)
+app.use(apiPrefix + "/chat", chatRouter)
+app.use(apiPrefix + "/quiz", quizRouter)
+app.use(apiPrefix + "/quiz-questions", quizQuestionsRouter)
+app.use(apiPrefix + "/quiz-attempts", quizAttemptsRouter)
+app.use(apiPrefix + "/flashcardsets", flashcardSetsRouter)
+app.use(apiPrefix + "/flashcards", flashcardsRouter)
+app.use(apiPrefix + "/flashcard-progress", flashcardProgressRouter)
+app.use(apiPrefix + "/notes", notesRouter)
+app.use(apiPrefix + "/whiteboard", whiteboardRouter)
 
 app.use(errorMiddleware)
 
