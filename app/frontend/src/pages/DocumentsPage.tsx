@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import toast from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchDocuments, uploadDocument, deleteDocument, setActiveDocument } from '../store/slices/documentSlice';
 import type { DocumentItem } from '../store/types';
 import { Upload, FileText, Trash2, AlertCircle, File, ExternalLink } from 'lucide-react';
 import { formatFileSize } from '../utils/format';
 import DocumentStatusBadge from '../components/DocumentStatusBadge';
+
+import showToast from '../utils/toast';
 
 export const DocumentsPage: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -49,21 +50,44 @@ export const DocumentsPage: React.FC = () => {
     }
   }, [documents.length]);
 
+  const validateAndSetFile = (file: File) => {
+    const validExtensions = ['.pdf', '.docx', '.txt'];
+    const hasValidExt = validExtensions.some((ext) => file.name.toLowerCase().endsWith(ext));
+    if (!hasValidExt) {
+      showToast.warning('Unsupported file type. Please upload a PDF, DOCX, or TXT document.');
+      return;
+    }
+
+    if (file.size > 16 * 1024 * 1024) {
+      showToast.warning('File exceeds 16MB limit. Please choose a smaller file.');
+      return;
+    }
+
+    setSelectedFile(file);
+    showToast.info(`Selected: ${file.name} (${formatFileSize(file.size)})`);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
+      validateAndSetFile(e.target.files[0]);
     }
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) return;
-    const toastId = toast.loading('Uploading document...');
+    if (!selectedFile) {
+      showToast.warning('Please select a file to upload first.');
+      return;
+    }
+    const toastId = showToast.loading('Uploading and indexing document...');
     const result = await dispatch(uploadDocument(selectedFile));
     if (uploadDocument.fulfilled.match(result)) {
-      toast.success('Document uploaded successfully!', { id: toastId });
+      showToast.dismiss(toastId);
+      showToast.success(`"${selectedFile.name}" uploaded successfully! Indexing initiated.`);
       setSelectedFile(null);
     } else {
-      toast.error('Failed to upload document', { id: toastId });
+      showToast.dismiss(toastId);
+      const errMsg = (result.payload as string) || 'Failed to upload document. Please check file format and try again.';
+      showToast.error(errMsg);
     }
   };
 
@@ -82,26 +106,29 @@ export const DocumentsPage: React.FC = () => {
     e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setSelectedFile(e.dataTransfer.files[0]);
+      validateAndSetFile(e.dataTransfer.files[0]);
     }
   };
 
   const handleDelete = async (docId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm('Are you sure you want to delete this document?')) {
-      const toastId = toast.loading('Deleting document...');
+      const toastId = showToast.loading('Deleting document...');
       const result = await dispatch(deleteDocument(docId));
       if (deleteDocument.fulfilled.match(result)) {
-        toast.success('Document deleted', { id: toastId });
+        showToast.dismiss(toastId);
+        showToast.success('Document deleted successfully.');
       } else {
-        toast.error('Failed to delete document', { id: toastId });
+        showToast.dismiss(toastId);
+        const errMsg = (result.payload as string) || 'Failed to delete document.';
+        showToast.error(errMsg);
       }
     }
   };
 
   const handleSelectDoc = (doc: DocumentItem) => {
     dispatch(setActiveDocument(doc));
-    toast.success(`Active document: ${doc.fileName}`);
+    showToast.success(`Active document set to "${doc.fileName}"`);
   };
 
   return (

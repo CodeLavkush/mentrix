@@ -23,9 +23,34 @@ import FlashcardsPage from './pages/FlashcardsPage';
 import WhiteboardPage from './pages/WhiteboardPage';
 import ProfilePage from './pages/ProfilePage';
 
+import { setSidebarOpen } from './store/slices/uiSlice';
+
+import DocumentRequiredGuard from './components/DocumentRequiredGuard';
+
 // Layout Wrapper
 const AppLayout: React.FC = () => {
   const location = useLocation();
+  const dispatch = useAppDispatch();
+
+  // Handle responsive sidebar defaults and window resizing
+  useEffect(() => {
+    const handleResize = () => {
+      const isLargeScreen = window.innerWidth >= 1024;
+      if (!isLargeScreen) {
+        dispatch(setSidebarOpen(false));
+      }
+    };
+
+    // On initial mount/navigation: larger screens open, smaller screens closed
+    if (window.innerWidth < 1024) {
+      dispatch(setSidebarOpen(false));
+    } else {
+      dispatch(setSidebarOpen(true));
+    }
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [dispatch]);
 
   const getPageTitle = (path: string) => {
     switch (path) {
@@ -51,18 +76,46 @@ const AppLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-mentrix-bg text-slate-900 dark:text-slate-100 font-inter transition-colors duration-200 relative overflow-x-hidden w-full">
+    <div className="flex h-screen max-h-screen bg-mentrix-bg text-slate-900 dark:text-slate-100 font-inter transition-colors duration-200 relative overflow-hidden w-full">
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 w-full">
+      <div className="flex-1 flex flex-col min-w-0 w-full h-full max-h-screen overflow-hidden">
         <Navbar title={getPageTitle(location.pathname)} />
-        <main className="flex-1 overflow-y-auto w-full">
+        <main className="flex-1 overflow-y-auto w-full relative">
           <Routes>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/documents" element={<DocumentsPage />} />
-            <Route path="/chat" element={<ChatPage />} />
-            <Route path="/notes" element={<NotesPage />} />
-            <Route path="/quizzes" element={<QuizzesPage />} />
-            <Route path="/flashcards" element={<FlashcardsPage />} />
+            <Route
+              path="/chat"
+              element={
+                <DocumentRequiredGuard featureName="AI Assistant Chat">
+                  <ChatPage />
+                </DocumentRequiredGuard>
+              }
+            />
+            <Route
+              path="/notes"
+              element={
+                <DocumentRequiredGuard featureName="Study Notes Library">
+                  <NotesPage />
+                </DocumentRequiredGuard>
+              }
+            />
+            <Route
+              path="/quizzes"
+              element={
+                <DocumentRequiredGuard featureName="Adaptive Quizzes">
+                  <QuizzesPage />
+                </DocumentRequiredGuard>
+              }
+            />
+            <Route
+              path="/flashcards"
+              element={
+                <DocumentRequiredGuard featureName="Flashcard Studio">
+                  <FlashcardsPage />
+                </DocumentRequiredGuard>
+              }
+            />
             <Route path="/whiteboard" element={<WhiteboardPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

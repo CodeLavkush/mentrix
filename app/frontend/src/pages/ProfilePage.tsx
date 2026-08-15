@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import toast from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { updateAcademicProfile } from '../store/slices/authSlice';
 import { profileApi } from '../api/profileApi';
 import CustomDropdown from '../components/CustomDropdown';
 import { GraduationCap, Save, CheckCircle, AlertCircle } from 'lucide-react';
+
+import showToast from '../utils/toast';
 
 export const ProfilePage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -56,30 +57,38 @@ export const ProfilePage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (rollNumber && (isNaN(Number(rollNumber)) || Number(rollNumber) < 0)) {
+      showToast.warning('Please enter a valid numeric roll number.');
+      return;
+    }
+
     setSaving(true);
     setSuccessMsg(null);
     setErrorMsg(null);
 
     const payload = {
-      collegeName,
-      universityName,
-      course,
-      branch,
+      collegeName: collegeName.trim(),
+      universityName: universityName.trim(),
+      course: course.trim(),
+      branch: branch.trim(),
       year: year ? Number(year) : undefined,
       semester: semester ? Number(semester) : undefined,
       rollNumber: rollNumber ? Number(rollNumber) : undefined,
     };
 
-    const toastId = toast.loading('Saving academic profile...');
+    const toastId = showToast.loading('Saving academic profile details...');
     const result = await dispatch(updateAcademicProfile(payload));
     setSaving(false);
     if (updateAcademicProfile.fulfilled.match(result)) {
-      setSuccessMsg('Academic details updated successfully!');
-      toast.success('Academic profile saved!', { id: toastId });
+      showToast.dismiss(toastId);
+      setSuccessMsg('Academic profile updated successfully!');
+      showToast.success('Academic profile saved successfully!');
     } else {
+      showToast.dismiss(toastId);
       const err = (result.payload as string) || 'Failed to update academic details.';
       setErrorMsg(err);
-      toast.error(err, { id: toastId });
+      showToast.error(err);
     }
   };
 

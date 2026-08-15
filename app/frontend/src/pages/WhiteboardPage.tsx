@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import toast from 'react-hot-toast';
+import showToast from '../utils/toast';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   fetchWhiteboards,
@@ -9,23 +9,21 @@ import {
   setActiveWhiteboard,
   setDraftCanvas,
 } from '../store/slices/whiteboardSlice';
-import CanvasBoard, { type CanvasBoardHandle } from '../components/CanvasBoard';
 import type { Whiteboard } from '../store/types';
-import { Edit3, Save, Trash2, Plus, AlertCircle, Image as ImageIcon, Sparkles, Clock } from 'lucide-react';
+import CanvasBoard, { type CanvasBoardHandle } from '../components/CanvasBoard';
+import { Edit3, Plus, Trash2, Save, AlertCircle, Sparkles, Image as ImageIcon, Clock } from 'lucide-react';
 
 export const WhiteboardPage: React.FC = () => {
-  const dispatch = useAppDispatch();
-  const pageRef = useRef<HTMLDivElement | null>(null);
+  const [title, setTitle] = useState(
+    `Whiteboard ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+  );
+  const [currentCanvasData, setCurrentCanvasData] = useState<any>(null);
+
   const canvasBoardRef = useRef<CanvasBoardHandle | null>(null);
+  const pageRef = useRef<HTMLDivElement | null>(null);
 
-  const { whiteboards, activeWhiteboard, draftCanvas, loading, saving, error } = useAppSelector(
-    (state) => state.whiteboard
-  );
-
-  const [title, setTitle] = useState(draftCanvas?.title || activeWhiteboard?.title || 'New Whiteboard');
-  const [currentCanvasData, setCurrentCanvasData] = useState<any>(
-    draftCanvas?.drawingData || activeWhiteboard?.drawingData || null
-  );
+  const dispatch = useAppDispatch();
+  const { whiteboards, activeWhiteboard, saving, loading, error } = useAppSelector((state) => state.whiteboard);
 
   useEffect(() => {
     dispatch(fetchWhiteboards());
@@ -36,15 +34,15 @@ export const WhiteboardPage: React.FC = () => {
       gsap.fromTo(
         '.wb-top-bar',
         { opacity: 0, y: -15 },
-        { opacity: 1, y: 0, duration: 0.45, ease: 'power3.out' }
+        { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
       );
       gsap.fromTo(
-        '.wb-canvas-area',
-        { opacity: 0, scale: 0.98 },
-        { opacity: 1, scale: 1, duration: 0.4, ease: 'power2.out', delay: 0.15 }
+        '.wb-history-card',
+        { opacity: 0, scale: 0.95 },
+        { opacity: 1, scale: 1, duration: 0.35, stagger: 0.05, ease: 'back.out(1.2)', delay: 0.15 }
       );
     }
-  }, []);
+  }, [whiteboards.length]);
 
   useEffect(() => {
     if (activeWhiteboard) {
@@ -60,21 +58,21 @@ export const WhiteboardPage: React.FC = () => {
 
   const handleSaveWhiteboard = async () => {
     if (!title.trim()) {
-      toast.error('Please provide a whiteboard title');
+      showToast.warning('Please provide a title for the whiteboard.');
       return;
     }
 
     const dataUrl = canvasBoardRef.current?.getDataUrl() || currentCanvasData;
     if (!dataUrl) {
-      toast.error('Canvas is empty');
+      showToast.warning('Canvas is empty. Draw or write something before saving.');
       return;
     }
 
     const blob = await canvasBoardRef.current?.getBlob();
-    const toastId = toast.loading('Saving whiteboard & thumbnail to cloud...');
+    const toastId = showToast.loading('Saving whiteboard & thumbnail to cloud...');
 
     const payload = {
-      title,
+      title: title.trim(),
       drawingData: {
         image: dataUrl,
         updatedAt: new Date().toISOString(),
@@ -84,9 +82,12 @@ export const WhiteboardPage: React.FC = () => {
 
     const result = await dispatch(createWhiteboard(payload));
     if (createWhiteboard.fulfilled.match(result)) {
-      toast.success('Whiteboard saved with thumbnail! ✨', { id: toastId });
+      showToast.dismiss(toastId);
+      showToast.success('Whiteboard saved with thumbnail! ✨');
     } else {
-      toast.error((result.payload as string) || 'Failed to save whiteboard', { id: toastId });
+      showToast.dismiss(toastId);
+      const errMsg = (result.payload as string) || 'Failed to save whiteboard. Please try again.';
+      showToast.error(errMsg);
     }
   };
 
@@ -96,18 +97,21 @@ export const WhiteboardPage: React.FC = () => {
     const newName = `Whiteboard ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     setTitle(newName);
     setCurrentCanvasData(null);
-    toast.success('Ready for new whiteboard canvas', { icon: '🎨' });
+    showToast.info('Ready for a new whiteboard canvas.');
   };
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm('Are you sure you want to delete this whiteboard?')) {
-      const toastId = toast.loading('Deleting whiteboard...');
+      const toastId = showToast.loading('Deleting whiteboard...');
       const result = await dispatch(deleteWhiteboard(id));
       if (deleteWhiteboard.fulfilled.match(result)) {
-        toast.success('Whiteboard deleted', { id: toastId });
+        showToast.dismiss(toastId);
+        showToast.success('Whiteboard deleted successfully.');
       } else {
-        toast.error('Failed to delete whiteboard', { id: toastId });
+        showToast.dismiss(toastId);
+        const errMsg = (result.payload as string) || 'Failed to delete whiteboard.';
+        showToast.error(errMsg);
       }
     }
   };
@@ -249,7 +253,7 @@ export const WhiteboardPage: React.FC = () => {
                         <h4 className="text-xs font-bold font-outfit truncate text-white">{wb.title}</h4>
                         <div className="flex items-center space-x-1.5 text-[10px] text-slate-400 mt-0.5">
                           <Clock className="w-3 h-3" />
-                          <span>{new Date(wb.createdAt || Date.now()).toLocaleDateString()}</span>
+                          <span>{wb.createdAt ? new Date(wb.createdAt).toLocaleDateString() : 'Recent'}</span>
                         </div>
                       </div>
                       <button

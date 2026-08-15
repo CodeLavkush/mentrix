@@ -5,8 +5,7 @@ import { toggleTheme, toggleSidebar } from '../store/slices/uiSlice';
 import type { DocumentItem } from '../store/types';
 import CustomDropdown from './CustomDropdown';
 import { Sun, Moon, FileText, Menu } from 'lucide-react';
-
-import toast from 'react-hot-toast';
+import showToast from '../utils/toast';
 import { formatFileSize } from '../utils/format';
 
 interface NavbarProps {
@@ -33,14 +32,11 @@ export const Navbar: React.FC<NavbarProps> = ({ title }) => {
   const handleToggleTheme = () => {
     dispatch(toggleTheme());
     const nextTheme = theme === 'dark' ? 'Light' : 'Dark';
-    toast.success(`Switched to ${nextTheme} Mode`, {
-      icon: nextTheme === 'Light' ? '☀️' : '🌙',
-      duration: 2000,
-    });
+    showToast.success(`Switched to ${nextTheme} Mode`);
   };
 
   return (
-    <header className="h-16 glass-panel border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20 font-inter">
+    <header className="h-16 glass-panel border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20 font-inter flex-shrink-0">
       {/* Mobile Toggle & Title */}
       <div className="flex items-center space-x-2 sm:space-x-3 truncate mr-2">
         <button

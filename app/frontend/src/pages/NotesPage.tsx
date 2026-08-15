@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import toast from 'react-hot-toast';
+import showToast from '../utils/toast';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   fetchNotesByDocument,
@@ -86,22 +86,23 @@ export const NotesPage: React.FC = () => {
 
   const handleSaveNote = async () => {
     if (!documentId) {
-      toast.error('Please select an active document first');
+      showToast.warning('Please select an active document first.');
       return;
     }
     if (!title.trim()) {
-      toast.error('Please provide a note title');
+      showToast.warning('Please provide a title for your note.');
       return;
     }
 
-    const toastId = toast.loading(activeNote ? 'Updating note in cloud...' : 'Saving note to cloud...');
-    const result = await dispatch(createNote({ documentId, payload: { title, content } }));
+    const toastId = showToast.loading(activeNote ? 'Updating note in cloud...' : 'Saving note to cloud...');
+    const result = await dispatch(createNote({ documentId, payload: { title: title.trim(), content } }));
     if (createNote.fulfilled.match(result)) {
-      toast.success(activeNote ? 'Note updated successfully! ✨' : 'Note created & saved! ✨', {
-        id: toastId,
-      });
+      showToast.dismiss(toastId);
+      showToast.success(activeNote ? 'Note updated successfully! ✨' : 'Note created & saved! ✨');
     } else {
-      toast.error((result.payload as string) || 'Failed to save note', { id: toastId });
+      showToast.dismiss(toastId);
+      const errMsg = (result.payload as string) || 'Failed to save note. Please try again.';
+      showToast.error(errMsg);
     }
   };
 
@@ -110,7 +111,7 @@ export const NotesPage: React.FC = () => {
     setTitle(note.title);
     setContent(note.content);
     setPreviewMode(false);
-    toast.success(`Editing: "${note.title}"`, { icon: '✏️', duration: 2000 });
+    showToast.info(`Editing note: "${note.title}"`);
   };
 
   const handleCreateNew = () => {
@@ -119,22 +120,25 @@ export const NotesPage: React.FC = () => {
     setContent('');
     setPreviewMode(false);
     editorRef.current?.focus();
-    toast.success('Ready for new note', { icon: '📝' });
+    showToast.info('Ready for a new note.');
   };
 
   const handleDelete = async (noteId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!documentId) return;
     if (confirm('Are you sure you want to delete this note?')) {
-      const toastId = toast.loading('Deleting note...');
+      const toastId = showToast.loading('Deleting note...');
       const result = await dispatch(deleteNote({ documentId, noteId }));
       if (deleteNote.fulfilled.match(result)) {
-        toast.success('Note deleted', { id: toastId });
+        showToast.dismiss(toastId);
+        showToast.success('Note deleted successfully.');
         if (activeNote?.id === noteId) {
           handleCreateNew();
         }
       } else {
-        toast.error('Failed to delete note', { id: toastId });
+        showToast.dismiss(toastId);
+        const errMsg = (result.payload as string) || 'Failed to delete note.';
+        showToast.error(errMsg);
       }
     }
   };

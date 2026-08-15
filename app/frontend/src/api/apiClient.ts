@@ -69,7 +69,46 @@ export async function request<T>(
     }
 
     if (!response.ok) {
-      const errorMessage = responseData?.message || response.statusText || 'An API error occurred';
+      let errorMessage = responseData?.message || response.statusText || 'An API error occurred';
+
+      // Parse field-level validation errors from express-validator or custom ApiError
+      const rawErrors = responseData?.errors || responseData?.extractedErrors || (Array.isArray(responseData?.data) ? responseData.data : null);
+      if (rawErrors && Array.isArray(rawErrors) && rawErrors.length > 0) {
+        const errorDetails = rawErrors
+          .map((errItem: any) => {
+            if (typeof errItem === 'string') return errItem;
+            if (typeof errItem === 'object' && errItem !== null) {
+              if (errItem.msg) return errItem.msg;
+              if (errItem.message) return errItem.message;
+              const values = Object.values(errItem);
+              if (values.length > 0) return values.join(', ');
+            }
+            return String(errItem);
+          })
+          .filter(Boolean);
+
+        if (errorDetails.length > 0) {
+          errorMessage = errorDetails.join('. ');
+        }
+      }
+
+      // Humanize standard backend error messages
+      if (errorMessage === 'User already exists') {
+        errorMessage = 'An account with this email or username already exists. Please sign in instead.';
+      } else if (errorMessage === 'User does not exists' || errorMessage === 'User does not exist') {
+        errorMessage = 'No account found with these details. Please register or check your credentials.';
+      } else if (errorMessage === 'Invalid password') {
+        errorMessage = 'Incorrect password. Please try again.';
+      } else if (errorMessage === 'Invalid OTP') {
+        errorMessage = 'The 6-digit OTP code entered is incorrect. Please check your inbox and try again.';
+      } else if (errorMessage === 'OTP is expired or not found') {
+        errorMessage = 'The OTP code has expired or is invalid. Please request a new code.';
+      } else if (errorMessage === 'Email is already verified') {
+        errorMessage = 'This email is already verified. You can log in directly.';
+      } else if (response.status === 413) {
+        errorMessage = 'The uploaded file is too large. Please select a smaller file (under 16MB).';
+      }
+
       throw new ApiError(errorMessage, response.status, responseData);
     }
 
@@ -88,7 +127,11 @@ export async function request<T>(
     if (error instanceof ApiError) {
       throw error;
     }
-    throw new ApiError(error.message || 'Network failure / Server unreachable', 500);
+    const isNetworkError = error?.message?.toLowerCase().includes('failed to fetch') || error?.name === 'TypeError';
+    const friendlyMsg = isNetworkError
+      ? 'Unable to connect to the Mentrix server. Please check your network connection.'
+      : (error.message || 'An unexpected error occurred. Please try again.');
+    throw new ApiError(friendlyMsg, 500);
   }
 }
 

@@ -17,9 +17,22 @@ export interface UIState {
 
 const loadedState = loadStateFromStorage();
 
+export const getInitialSidebarState = (): boolean => {
+  if (typeof window !== 'undefined') {
+    const isLargeScreen = window.innerWidth >= 1024;
+    // On smaller screens, sidebar is closed by default
+    if (!isLargeScreen) {
+      return false;
+    }
+    // On larger screens, default to open (or user preference if saved)
+    return loadedState?.ui?.sidebarOpen ?? true;
+  }
+  return true;
+};
+
 const initialState: UIState = {
   theme: loadedState?.ui?.theme || 'dark',
-  sidebarOpen: loadedState?.ui?.sidebarOpen ?? true,
+  sidebarOpen: getInitialSidebarState(),
   activeTab: 'dashboard',
   activeModal: null,
   toasts: [],

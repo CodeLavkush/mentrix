@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import showToast from '../utils/toast';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   fetchFlashcardSetsByAttempt,
@@ -139,26 +139,36 @@ export const FlashcardsPage: React.FC = () => {
 
   const handleGenerateSet = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedAttemptId || !newTitle.trim()) return;
+    if (!selectedAttemptId) {
+      showToast.warning('Please select a quiz attempt first to generate cards.');
+      return;
+    }
+    if (!newTitle.trim()) {
+      showToast.warning('Please enter a title for the flashcard set.');
+      return;
+    }
 
-    const toastId = toast.loading('Generating study flashcards with AI...');
+    const toastId = showToast.loading('Generating study flashcards with AI...');
     const result = await dispatch(
       createFlashcardSet({
         quizAttemptId: selectedAttemptId,
         payload: {
-          title: newTitle,
-          topic: newTopic || 'General Study',
+          title: newTitle.trim(),
+          topic: newTopic.trim() || 'General Study',
           totalCards: Number(newTotalCards),
         },
       })
     );
     if (createFlashcardSet.fulfilled.match(result)) {
-      toast.success('Flashcard set generated successfully!', { id: toastId });
+      showToast.dismiss(toastId);
+      showToast.success('Flashcard set generated successfully! Ready to study.');
       setShowCreateModal(false);
       setNewTitle('');
       setNewTopic('');
     } else {
-      toast.error((result.payload as string) || 'Failed to generate flashcard set', { id: toastId });
+      showToast.dismiss(toastId);
+      const errMsg = (result.payload as string) || 'Failed to generate flashcard set. Please try again.';
+      showToast.error(errMsg);
     }
   };
 
@@ -168,10 +178,10 @@ export const FlashcardsPage: React.FC = () => {
 
     if (isCorrect) {
       setSessionKnownCount((prev) => prev + 1);
-      toast.success('Marked as Known! 🎉', { duration: 1500 });
+      showToast.success('Marked as Known! 🎉');
     } else {
       setSessionReviewCount((prev) => prev + 1);
-      toast.error('Marked for Review 📝', { duration: 1500 });
+      showToast.info('Marked for Review 📝');
     }
 
     await dispatch(updateCardProgress({ flashcardId: currentCard.id, isCorrect }));
@@ -180,10 +190,7 @@ export const FlashcardsPage: React.FC = () => {
     if (currentCardIndex < cards.length - 1) {
       setCurrentCardIndex((prev) => prev + 1);
     } else {
-      toast.success('Completed this study cycle! Check your deck progress below. 🚀', {
-        icon: '🏆',
-        duration: 3500,
-      });
+      showToast.success('Completed this study cycle! Check your deck progress below. 🚀');
     }
   };
 

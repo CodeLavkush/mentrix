@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import toast from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchChatMessages, sendChatMessage } from '../store/slices/chatSlice';
 import type { ChatMessage } from '../store/types';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { Send, User, FileText, AlertCircle, Copy } from 'lucide-react';
 import mentrixLogo from '../assets/mentrix_logo.png';
+
+import showToast from '../utils/toast';
 
 export const ChatPage: React.FC = () => {
   const [inputMessage, setInputMessage] = useState('');
@@ -30,21 +31,30 @@ export const ChatPage: React.FC = () => {
     gsap.fromTo(
       '.chat-bubble:last-child',
       { opacity: 0, y: 12, scale: 0.98 },
-      { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: 'power2.out' }
+      { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }
     );
   }, [messages.length, sending]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputMessage.trim() || !documentId || sending) return;
+    if (!inputMessage.trim()) {
+      showToast.warning('Please enter a message or select a suggested prompt.');
+      return;
+    }
+    if (!documentId) {
+      showToast.warning('Please select an active document from the top navigation first.');
+      return;
+    }
+    if (sending) return;
 
-    const messageText = inputMessage;
+    const messageText = inputMessage.trim();
     setInputMessage('');
     const result = await dispatch(sendChatMessage({ documentId, message: messageText }));
     if (sendChatMessage.fulfilled.match(result)) {
-      toast.success('AI response received!');
+      // response rendered smoothly
     } else {
-      toast.error('Failed to get AI response');
+      const errMsg = (result.payload as string) || 'AI Assistant could not generate a response. Please try again.';
+      showToast.error(errMsg);
     }
   };
 
@@ -54,7 +64,7 @@ export const ChatPage: React.FC = () => {
 
   const copyMessage = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard!');
+    showToast.success('Response copied to clipboard!');
   };
 
   const promptSuggestions = [

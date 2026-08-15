@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import toast from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   fetchQuizzesByDocument,
@@ -13,7 +12,8 @@ import {
 import type { Quiz, QuizQuestion } from '../store/types';
 import CustomDropdown from '../components/CustomDropdown';
 import MarkdownRenderer from '../components/MarkdownRenderer';
-import { Plus, Award, CheckCircle, AlertCircle, FileText, Sparkles } from 'lucide-react';
+import { Plus, Award, AlertCircle, FileText, Sparkles, CheckCircle2 } from 'lucide-react';
+import showToast from '../utils/toast';
 
 export const QuizzesPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -25,7 +25,7 @@ export const QuizzesPage: React.FC = () => {
 
   // Generator form
   const [quizTitle, setQuizTitle] = useState('');
-  const [difficulty, setDifficulty] = useState<'EASY' | 'MEDIUM' | 'HARD'>('EASY');
+  const [difficulty, setDifficulty] = useState<'EASY' | 'MEDIUM' | 'HARD'>('MEDIUM');
   const [totalQuestions, setTotalQuestions] = useState('5');
 
   // Player state
@@ -62,19 +62,35 @@ export const QuizzesPage: React.FC = () => {
 
   const handleGenerateQuiz = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!documentId || !quizTitle.trim()) return;
-    const toastId = toast.loading('Generating AI quiz questions with Gemini...');
+    if (!documentId) {
+      showToast.warning('Please select an active document first from the top bar.');
+      return;
+    }
+    if (!quizTitle.trim()) {
+      showToast.warning('Please enter a title or focus topic for the quiz.');
+      return;
+    }
+    const qCount = Number(totalQuestions);
+    if (isNaN(qCount) || qCount < 1 || qCount > 30) {
+      showToast.warning('Total questions must be between 1 and 30.');
+      return;
+    }
+
+    const toastId = showToast.loading('Generating AI quiz questions with Gemini...');
     const result = await dispatch(
       createQuiz({
         documentId,
-        payload: { quizTitle, difficulty, totalQuestions: Number(totalQuestions) },
+        payload: { quizTitle: quizTitle.trim(), difficulty, totalQuestions: qCount },
       })
     );
     if (createQuiz.fulfilled.match(result)) {
-      toast.success('Quiz generated successfully!', { id: toastId });
+      showToast.dismiss(toastId);
+      showToast.success('Quiz generated successfully! Select questions below to begin.');
       setQuizTitle('');
     } else {
-      toast.error((result.payload as string) || 'Failed to generate quiz', { id: toastId });
+      showToast.dismiss(toastId);
+      const errMsg = (result.payload as string) || 'Failed to generate quiz. Please try again.';
+      showToast.error(errMsg);
     }
   };
 
@@ -99,7 +115,7 @@ export const QuizzesPage: React.FC = () => {
     setScoreResult({ score, total, percentage });
     setQuizCompleted(true);
 
-    const toastId = toast.loading('Recording quiz score...');
+    const toastId = showToast.loading('Recording quiz score...');
     await dispatch(
       submitQuizAttempt({
         quizId: activeQuiz.id,
@@ -111,7 +127,8 @@ export const QuizzesPage: React.FC = () => {
         },
       })
     );
-    toast.success(`Quiz complete! Your score: ${score}/${total} (${percentage}%)`, { id: toastId });
+    showToast.dismiss(toastId);
+    showToast.success(`Quiz complete! Your score: ${score}/${total} (${percentage}%)`);
   };
 
   const difficultyOptions = [
@@ -313,7 +330,7 @@ export const QuizzesPage: React.FC = () => {
                             </span>
                             <span className="leading-relaxed mt-0.5">{optionText}</span>
                           </div>
-                          {quizCompleted && isCorrect && <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
+                          {quizCompleted && isCorrect && <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
                         </button>
                       );
                     })}
