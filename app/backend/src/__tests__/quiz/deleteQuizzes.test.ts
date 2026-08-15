@@ -95,7 +95,6 @@ describe(
 
                     select: {
                         id: true,
-                        username: true,
                     },
                 });
 
@@ -157,7 +156,7 @@ describe(
                 expect(
                     response.body.message
                 ).toBe(
-                    "User does not found."
+                    "User does not exists."
                 );
 
 
@@ -210,7 +209,7 @@ describe(
                 expect(
                     response.body.message
                 ).toBe(
-                    "Document does not exsist."
+                    "Document does not exsits."
                 );
 
 

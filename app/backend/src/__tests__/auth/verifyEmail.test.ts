@@ -2,7 +2,7 @@ import request from "supertest";
 import { jest } from "@jest/globals";
 
 import {
-    mockFindFirst,
+    mockFindUnique,
     mockUpdate,
     setupPrismaMock,
 
@@ -34,7 +34,7 @@ describe(
             async () => {
 
                 // 1. User exists
-                mockFindFirst.mockResolvedValue({
+                mockFindUnique.mockResolvedValue({
                     id: "user-id-123",
                 });
 
@@ -86,7 +86,7 @@ describe(
 
 
                 expect(
-                    mockFindFirst
+                    mockFindUnique
                 ).toHaveBeenCalled();
 
 
@@ -122,7 +122,7 @@ describe(
             "should return 404 when user does not exist",
             async () => {
 
-                mockFindFirst.mockResolvedValue(null);
+                mockFindUnique.mockResolvedValue(null);
 
 
                 const response =

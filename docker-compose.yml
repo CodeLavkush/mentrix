@@ -209,6 +209,26 @@ services:
     networks:
       - mentrix-network
 
+  frontend:
+    build:
+      context: ./app/frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:4000/api/v1
+
+    image: mentrix-frontend:latest
+    container_name: mentrix-frontend
+    restart: unless-stopped
+
+    ports:
+      - "5173:80"
+
+    depends_on:
+      - backend
+
+    networks:
+      - mentrix-network
+
 volumes:
   postgres_data:
   redis_data:
@@ -218,3 +238,4 @@ volumes:
 networks:
   mentrix-network:
     driver: bridge
+

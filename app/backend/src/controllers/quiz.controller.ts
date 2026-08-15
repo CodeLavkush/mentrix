@@ -102,11 +102,13 @@ const createQuiz: RequestHandler = asyncHandler(async (req, res) => {
         "Quiz creation failed."
     )
 
-    await Promise.all(
-        result.questions?.map(async (question: Question) => {
-            createQuizQuestion(question, quiz.id)
-        })
-    )
+    if (result.questions && Array.isArray(result.questions)) {
+        await Promise.all(
+            result.questions.map((question: Question) =>
+                createQuizQuestion(question, quiz.id)
+            )
+        )
+    }
 
     return res
         .status(201)
@@ -159,17 +161,13 @@ const getAllQuizzes: RequestHandler = asyncHandler(async (req, res) => {
         }
     )
 
-    if (quizzes.length === 0) {
-        throw new ApiError(404, "Quizzes not found.")
-    }
-
     return res
         .status(200)
         .json(
             new ApiResponse(
                 200,
-                quizzes,
-                "Quzzes fetched successfully."
+                quizzes || [],
+                "Quizzes fetched successfully."
             )
         )
 })

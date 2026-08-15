@@ -132,16 +132,12 @@ const getDocumentsById: RequestHandler = asyncHandler(async (req, res) => {
         }
     )
 
-    if (documents.length === 0) {
-        throw new ApiError(404, "No documents found for the user")
-    }
-
     return res
         .status(200)
         .json(
             new ApiResponse(
                 200,
-                serializeBigInt(documents),
+                serializeBigInt(documents || []),
                 "Documents fetched Successfully"
             )
         )

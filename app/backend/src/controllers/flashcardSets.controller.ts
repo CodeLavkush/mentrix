@@ -135,11 +135,13 @@ const createFlashcardSet: RequestHandler = asyncHandler(async (req, res) => {
     )
 
 
-    await Promise.all(
-        result.flashcards?.map(async (flashcard: Flashcard) => {
-            createFlashcard(flashcard, flashcardSet.id)
-        })
-    )
+    if (result.flashcards && Array.isArray(result.flashcards)) {
+        await Promise.all(
+            result.flashcards.map((flashcard: Flashcard) =>
+                createFlashcard(flashcard, flashcardSet.id)
+            )
+        )
+    }
 
     return res
         .status(201)
@@ -207,16 +209,12 @@ const getAllFlashcardSets: RequestHandler = asyncHandler(async (req, res) => {
         }
     )
 
-    if (flashcardSets.length === 0) {
-        throw new ApiError(404, "Flashcard sets not found.")
-    }
-
     return res
         .status(200)
         .json(
             new ApiResponse(
                 200,
-                flashcardSets,
+                flashcardSets || [],
                 "Flashcards fetched successfully."
             )
         )

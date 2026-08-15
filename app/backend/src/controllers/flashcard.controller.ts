@@ -62,16 +62,12 @@ const getAllFlashCards: RequestHandler = asyncHandler(async (req, res) => {
         }
     )
 
-    if (flashcards.length === 0) {
-        throw new ApiError(404, "Failed to fetched flashcards.")
-    }
-
     return res
         .status(200)
         .json(
             new ApiResponse(
                 200,
-                flashcards,
+                flashcards || [],
                 "Flashcards fetched successfully."
             )
         )

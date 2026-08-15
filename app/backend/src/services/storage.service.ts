@@ -47,6 +47,12 @@ export async function uploadFile(
     fileBuffer: Buffer,
     mimeType: string,
 ) {
+    try {
+        await ensureBucket();
+    } catch (err) {
+        console.error("ensureBucket error:", err);
+    }
+
     await minioClient.putObject(
         BUCKET_NAME,
         fileName,

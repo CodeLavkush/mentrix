@@ -118,7 +118,7 @@ describe("GET /api/v1/document", () => {
         expect(mockDocumentsFindMany).not.toHaveBeenCalled();
     });
 
-    it("should return an empty array when user has no documents", async () => {
+    it("should return 404 when user has no documents", async () => {
         mockFindFirst.mockResolvedValue({
             id: "user-id-123",
         });
@@ -127,12 +127,10 @@ describe("GET /api/v1/document", () => {
 
         const response = await request(app).get("/api/v1/document");
 
-        expect(response.status).toBe(200);
+        expect(response.status).toBe(404);
 
         expect(response.body.message).toBe(
-            "Documents fetched Successfully"
+            "No documents found for the user"
         );
-
-        expect(response.body.data).toEqual([]);
     });
 });

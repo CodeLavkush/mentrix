@@ -12,6 +12,10 @@ class AcademicDetailsQuery extends BaseQuery {
         return prisma.academicDetails.update(query);
     }
 
+    async upsert(query: Prisma.AcademicDetailsUpsertArgs) {
+        return prisma.academicDetails.upsert(query);
+    }
+
     async findUnique(query: Prisma.AcademicDetailsFindUniqueArgs) {
         return prisma.academicDetails.findUnique(query);
     }

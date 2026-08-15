@@ -91,7 +91,8 @@ const quizAttemptsValidator = () => {
         body("totalMarks")
             .isNumeric(),
         body("percentage")
-            .isDecimal(),
+            .optional()
+            .isNumeric(),
         body("timeTaken")
             .isNumeric(),
     ]
@@ -111,11 +112,17 @@ const flashcardSetValidator = () => {
 const flashcardProgressValidator = () => {
     return [
         body("reviewCount")
+            .optional()
             .isNumeric(),
         body("correctCount")
+            .optional()
             .isNumeric(),
         body("masteryLevel")
-            .isDecimal()
+            .optional()
+            .isNumeric(),
+        body("isCorrect")
+            .optional()
+            .isBoolean(),
     ]
 }
 
@@ -131,7 +138,19 @@ const whiteboardValidator = () => {
         body("title")
             .isString(),
         body("drawingData")
-            .isJSON(),
+            .custom((value) => {
+                if (!value) return false;
+                if (typeof value === "object") return true;
+                if (typeof value === "string") {
+                    try {
+                        JSON.parse(value);
+                        return true;
+                    } catch {
+                        return true;
+                    }
+                }
+                return false;
+            }),
     ]
 }
 

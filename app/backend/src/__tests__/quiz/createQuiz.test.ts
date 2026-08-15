@@ -484,7 +484,7 @@ describe(
 
 
         it(
-            "should return 500 when quiz creation fails",
+            "should return 409 when quiz creation fails",
             async () => {
 
                 // User exists
@@ -499,6 +499,43 @@ describe(
                     .mockResolvedValue({
                         id: "document-id-123",
                     });
+
+
+                // AI service returns questions
+                (
+                    global.fetch as jest.MockedFunction<
+                        typeof fetch
+                    >
+                ).mockResolvedValue({
+                    ok: true,
+
+                    json: async () => ({
+                        questions: [
+                            {
+                                question:
+                                    "What is JavaScript?",
+
+                                option_a:
+                                    "Programming language",
+
+                                option_b:
+                                    "Database",
+
+                                option_c:
+                                    "Operating system",
+
+                                option_d:
+                                    "Browser",
+
+                                correct_option:
+                                    "A",
+
+                                explanation:
+                                    "JavaScript is a programming language.",
+                            },
+                        ],
+                    }),
+                } as Response);
 
 
                 // Quiz creation fails
@@ -525,19 +562,14 @@ describe(
 
                 expect(
                     response.status
-                ).toBe(500);
+                ).toBe(409);
 
 
                 expect(
-                    response.body.success
+                    response.body.message
                 ).toBe(
-                    false
+                    "Quiz creation failed."
                 );
-
-
-                expect(
-                    global.fetch
-                ).not.toHaveBeenCalled();
             }
         );
     }

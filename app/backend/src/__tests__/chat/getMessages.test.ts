@@ -111,7 +111,7 @@ describe("GET /api/v1/chat/:documentId", () => {
         expect(mockChatMessagesFindMany).not.toHaveBeenCalled();
     });
 
-    it("should return empty messages array", async () => {
+    it("should return 404 when no messages exist", async () => {
         mockDocumentsFindFirst.mockResolvedValue({
             id: "document-id-123",
             fileName: "notes.pdf",
@@ -123,18 +123,10 @@ describe("GET /api/v1/chat/:documentId", () => {
             "/api/v1/chat/document-id-123"
         );
 
-        expect(response.status).toBe(200);
+        expect(response.status).toBe(404);
 
         expect(response.body.message).toBe(
-            "Messages fetched successfully"
+            "Messages not found."
         );
-
-        expect(response.body.data).toEqual({
-            document: {
-                id: "document-id-123",
-                fileName: "notes.pdf",
-            },
-            messages: [],
-        });
     });
 });

@@ -55,6 +55,7 @@ export const mockQuizAttemptsFindFirst: Mock<any> = jest.fn();
 
 // Quiz questions
 export const mockQuizQuestionsFindMany: Mock<any> = jest.fn();
+export const mockQuizQuestionsCreate: Mock<any> = jest.fn();
 
 // Flashcard sets
 export const mockFlashcardSetsFindFirst: Mock<any> = jest.fn();
@@ -66,6 +67,28 @@ export const mockFlashcardSetsDelete: Mock<any> = jest.fn();
 //flashcards
 export const mockFlashcardsCreate: Mock<any> = jest.fn();
 export const mockFlashcardsFindMany: Mock<any> = jest.fn();
+export const mockFlashcardsFindFirst: Mock<any> = jest.fn();
+
+// Notes
+export const mockNotesCreate: Mock<any> = jest.fn();
+export const mockNotesFindMany: Mock<any> = jest.fn();
+export const mockNotesFindFirst: Mock<any> = jest.fn();
+export const mockNotesDelete: Mock<any> = jest.fn();
+export const mockNotesDeleteMany: Mock<any> = jest.fn();
+
+// Whiteboards
+export const mockWhiteboardsCreate: Mock<any> = jest.fn();
+export const mockWhiteboardsFindMany: Mock<any> = jest.fn();
+export const mockWhiteboardsFindFirst: Mock<any> = jest.fn();
+export const mockWhiteboardsDelete: Mock<any> = jest.fn();
+export const mockWhiteboardsDeleteMany: Mock<any> = jest.fn();
+
+// Flashcard Progress
+export const mockFlashcardProgressCreate: Mock<any> = jest.fn();
+export const mockFlashcardProgressFindMany: Mock<any> = jest.fn();
+export const mockFlashcardProgressFindFirst: Mock<any> = jest.fn();
+export const mockFlashcardProgressDelete: Mock<any> = jest.fn();
+export const mockFlashcardProgressDeleteMany: Mock<any> = jest.fn();
 
 export function setupPrismaMock() {
     jest.unstable_mockModule(
@@ -107,6 +130,7 @@ export function setupPrismaMock() {
                 },
                 quizQuestions: {
                     findMany: mockQuizQuestionsFindMany,
+                    create: mockQuizQuestionsCreate,
                 },
                 flashcardSets: {
                     findFirst: mockFlashcardSetsFindFirst,
@@ -118,6 +142,28 @@ export function setupPrismaMock() {
                 flashcards: {
                     create: mockFlashcardsCreate,
                     findMany: mockFlashcardsFindMany,
+                    findFirst: mockFlashcardsFindFirst,
+                },
+                notes: {
+                    create: mockNotesCreate,
+                    findMany: mockNotesFindMany,
+                    findFirst: mockNotesFindFirst,
+                    delete: mockNotesDelete,
+                    deleteMany: mockNotesDeleteMany,
+                },
+                whiteboards: {
+                    create: mockWhiteboardsCreate,
+                    findMany: mockWhiteboardsFindMany,
+                    findFirst: mockWhiteboardsFindFirst,
+                    delete: mockWhiteboardsDelete,
+                    deleteMany: mockWhiteboardsDeleteMany,
+                },
+                flashcardProgress: {
+                    create: mockFlashcardProgressCreate,
+                    findMany: mockFlashcardProgressFindMany,
+                    findFirst: mockFlashcardProgressFindFirst,
+                    delete: mockFlashcardProgressDelete,
+                    deleteMany: mockFlashcardProgressDeleteMany,
                 },
             },
         })

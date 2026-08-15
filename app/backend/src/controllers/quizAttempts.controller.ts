@@ -37,15 +37,19 @@ const createQuizAttempts: RequestHandler = asyncHandler(async (req, res) => {
         "Quiz does not exists."
     )
 
+    const calculatedPercentage = percentage !== undefined && percentage !== null
+        ? percentage
+        : (totalMarks > 0 ? (score / totalMarks) * 100 : 0);
+
     const quizAttempts = await quizAttemptQuery.createOrThrow(
         {
             data: {
                 quizId: quiz.id,
                 userId,
-                score,
-                totalMarks,
-                percentage,
-                timeTaken,
+                score: Number(score),
+                totalMarks: Number(totalMarks),
+                percentage: calculatedPercentage,
+                timeTaken: Number(timeTaken || 0),
             },
             select: {
                 id: true,
@@ -111,16 +115,12 @@ const getAllAttempts: RequestHandler = asyncHandler(async (req, res) => {
         }
     )
 
-    if (quizAttempts.length === 0) {
-        throw new ApiError(404, "Failed to fetched quiz attempts.")
-    }
-
     return res
         .status(200)
         .json(
             new ApiResponse(
                 200,
-                quizAttempts,
+                quizAttempts || [],
                 "Quiz attempts fetched successfully."
             )
         )

@@ -5,7 +5,6 @@ import type { RequestHandler } from "express"
 import { academicDetailsQuery } from "../queries/academicDetails.query.js"
 import { userQuery } from "../queries/user.query.js"
 
-
 const createProfile: RequestHandler = asyncHandler(async (req, res) => {
     const {
         collegeName,
@@ -19,6 +18,10 @@ const createProfile: RequestHandler = asyncHandler(async (req, res) => {
 
     const userId = req.user?.id
 
+    if (!userId) {
+        throw new ApiError(401, "Unauthorized")
+    }
+
     await userQuery.findFirstOrThrow(
         {
             where: {
@@ -29,35 +32,32 @@ const createProfile: RequestHandler = asyncHandler(async (req, res) => {
             }
         },
         404,
-        "User does not exists."
+        "User does not exist."
     )
 
-    const profileId = await academicDetailsQuery.findFirst(
+    const profile = await academicDetailsQuery.upsert(
         {
             where: {
                 userId: userId
             },
-            select: {
-                id: true
-            }
-        }
-    )
-
-    if (profileId) {
-        throw new ApiError(409, "academic details already exists")
-    }
-
-    const profile = await academicDetailsQuery.createOrThrow(
-        {
-            data: {
-                collegeName,
-                universityName,
-                course,
-                branch,
-                year,
-                semester,
-                rollNumber,
-                userId
+            update: {
+                ...(collegeName !== undefined && { collegeName: collegeName || null }),
+                ...(universityName !== undefined && { universityName: universityName || null }),
+                ...(course !== undefined && { course: course || null }),
+                ...(branch !== undefined && { branch: branch || null }),
+                ...(year !== undefined && { year: year ? Number(year) : null }),
+                ...(semester !== undefined && { semester: semester ? Number(semester) : null }),
+                ...(rollNumber !== undefined && { rollNumber: rollNumber ? Number(rollNumber) : null })
+            },
+            create: {
+                userId,
+                collegeName: collegeName || null,
+                universityName: universityName || null,
+                course: course || null,
+                branch: branch || null,
+                year: year ? Number(year) : null,
+                semester: semester ? Number(semester) : null,
+                rollNumber: rollNumber ? Number(rollNumber) : null
             },
             select: {
                 id: true,
@@ -68,11 +68,11 @@ const createProfile: RequestHandler = asyncHandler(async (req, res) => {
                 year: true,
                 semester: true,
                 rollNumber: true,
-                userId: true
+                userId: true,
+                createdAt: true,
+                updatedAt: true
             }
-        },
-        404,
-        "Failed to create academic details"
+        }
     )
 
     return res
@@ -81,14 +81,17 @@ const createProfile: RequestHandler = asyncHandler(async (req, res) => {
             new ApiResponse(
                 201,
                 profile,
-                "Academic details added successfully"
+                "Academic details saved successfully"
             )
         )
-
 })
 
 const getProfile: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
+
+    if (!userId) {
+        throw new ApiError(401, "Unauthorized")
+    }
 
     await userQuery.findFirstOrThrow(
         {
@@ -100,10 +103,10 @@ const getProfile: RequestHandler = asyncHandler(async (req, res) => {
             }
         },
         404,
-        "User does not exists."
+        "User does not exist."
     )
 
-    const profile = await academicDetailsQuery.findFirstOrThrow(
+    const profile = await academicDetailsQuery.findFirst(
         {
             where: {
                 userId: userId
@@ -118,6 +121,8 @@ const getProfile: RequestHandler = asyncHandler(async (req, res) => {
                 semester: true,
                 rollNumber: true,
                 userId: true,
+                createdAt: true,
+                updatedAt: true,
                 user: {
                     select: {
                         id: true,
@@ -125,9 +130,7 @@ const getProfile: RequestHandler = asyncHandler(async (req, res) => {
                     }
                 }
             }
-        },
-        404,
-        "Academic details not found."
+        }
     )
 
     return res
@@ -135,7 +138,7 @@ const getProfile: RequestHandler = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(
                 200,
-                profile,
+                profile || null,
                 "Profile fetched successfully"
             )
         )
@@ -154,6 +157,10 @@ const updateProfile: RequestHandler = asyncHandler(async (req, res) => {
 
     const userId = req.user?.id
 
+    if (!userId) {
+        throw new ApiError(401, "Unauthorized")
+    }
+
     await userQuery.findFirstOrThrow(
         {
             where: {
@@ -164,32 +171,48 @@ const updateProfile: RequestHandler = asyncHandler(async (req, res) => {
             }
         },
         404,
-        "User does not exists."
+        "User does not exist."
     )
 
-    const updatedProfile = await academicDetailsQuery.update(
+    const updatedProfile = await academicDetailsQuery.upsert(
         {
             where: {
                 userId: userId,
             },
-            data: {
-                ...(collegeName !== undefined && { collegeName }),
-                ...(universityName !== undefined && { universityName }),
-                ...(course !== undefined && { course }),
-                ...(branch !== undefined && { branch }),
-                ...(year !== undefined && { year }),
-                ...(semester !== undefined && { semester }),
-                ...(rollNumber !== undefined && { rollNumber })
+            update: {
+                ...(collegeName !== undefined && { collegeName: collegeName || null }),
+                ...(universityName !== undefined && { universityName: universityName || null }),
+                ...(course !== undefined && { course: course || null }),
+                ...(branch !== undefined && { branch: branch || null }),
+                ...(year !== undefined && { year: year ? Number(year) : null }),
+                ...(semester !== undefined && { semester: semester ? Number(semester) : null }),
+                ...(rollNumber !== undefined && { rollNumber: rollNumber ? Number(rollNumber) : null })
+            },
+            create: {
+                userId,
+                collegeName: collegeName || null,
+                universityName: universityName || null,
+                course: course || null,
+                branch: branch || null,
+                year: year ? Number(year) : null,
+                semester: semester ? Number(semester) : null,
+                rollNumber: rollNumber ? Number(rollNumber) : null
             },
             select: {
-                id: true
+                id: true,
+                collegeName: true,
+                universityName: true,
+                course: true,
+                branch: true,
+                year: true,
+                semester: true,
+                rollNumber: true,
+                userId: true,
+                createdAt: true,
+                updatedAt: true
             }
         }
     )
-
-    if (!updatedProfile) {
-        throw new ApiError(404, "Failed to update academic details")
-    }
 
     return res
         .status(200)

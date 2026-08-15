@@ -6,7 +6,7 @@ const router: Router = Router()
 
 
 router
-    .route("/:flashcardSetsId")
+    .route("/:flashcardSetId")
     .get(verifyJWT, getAllFlashCards)
 
 

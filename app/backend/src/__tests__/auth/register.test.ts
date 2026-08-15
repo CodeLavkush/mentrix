@@ -64,7 +64,16 @@ describe(
                 // Mock duplicate-user check
                 // ------------------------------------------
 
-                mockFindFirst.mockResolvedValue(null);
+                mockFindFirst
+                    .mockResolvedValueOnce(null)
+                    .mockResolvedValueOnce({
+                        id: "user-id-123",
+                        username: "john",
+                        gender: "MALE",
+                        age: 20,
+                        email: "john@example.com",
+                        isEmailVerified: false,
+                    });
 
 
                 // ------------------------------------------
@@ -364,7 +373,16 @@ describe(
             "should register a user without an avatar",
             async () => {
 
-                mockFindFirst.mockResolvedValue(null);
+                mockFindFirst
+                    .mockResolvedValueOnce(null)
+                    .mockResolvedValueOnce({
+                        id: "user-id-123",
+                        username: "john",
+                        gender: "MALE",
+                        age: 20,
+                        email: "john@example.com",
+                        isEmailVerified: false,
+                    });
 
 
                 mockHash.mockResolvedValue(

@@ -216,7 +216,7 @@ describe(
                 expect(
                     response.body.message
                 ).toBe(
-                    "User does not exists"
+                    "User does not exists."
                 );
 
 

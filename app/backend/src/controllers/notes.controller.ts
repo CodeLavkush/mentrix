@@ -6,12 +6,13 @@ import { userQuery } from '../queries/user.query.js'
 import { documentQuery } from '../queries/document.query.js'
 import { noteQuery } from '../queries/note.query.js'
 import { serializeBigInt } from "../utils/serialize.js"
+import { prisma } from "../db/prisma.js"
 
 
 const createNote: RequestHandler = asyncHandler(async (req, res) => {
     const userId = req.user?.id
     const { documentId } = req.params
-    const { title } = req.body
+    const { title, content } = req.body
 
     await userQuery.findFirstOrThrow(
         {
@@ -39,41 +40,57 @@ const createNote: RequestHandler = asyncHandler(async (req, res) => {
         "Document does not exists."
     )
 
-    const response = await fetch(
-        `${process.env.AI_SERVICE_URL}/api/v1/internal/notes`,
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                title: title,
-                document_Id: document.id
-            }),
-            signal: AbortSignal.timeout(10 * 60 * 1000), // 10 minutes
+    let finalContent = content;
+
+    if (!finalContent) {
+        try {
+            const response = await fetch(
+                `${process.env.AI_SERVICE_URL}/api/v1/internal/notes`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        document_Id: document.id
+                    }),
+                    signal: AbortSignal.timeout(10 * 60 * 1000), // 10 minutes
+                }
+            );
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result?.content) {
+                    finalContent = result.content;
+                }
+            }
+        } catch {
+            // Fallback to empty if AI service unavailable
+            finalContent = "";
         }
-    );
-
-    if (!response.ok) {
-        throw new ApiError(
-            404,
-            "AI Service Error"
-        );
     }
 
-    const result = await response.json();
-
-    if (!result.content) {
-        throw new ApiError(404, "Notes cannot be generated.")
+    if (finalContent === undefined || finalContent === null) {
+        finalContent = "";
     }
 
-    const note = await noteQuery.createOrThrow(
-        {
+    const existingNote = await noteQuery.findFirst({
+        where: {
+            userId,
+            documentId: document.id,
+        }
+    })
+
+    let note;
+    if (existingNote) {
+        note = await prisma.notes.update({
+            where: {
+                id: existingNote.id,
+            },
             data: {
-                userId,
-                documentId: document.id,
                 title: title as string,
-                content: result.content,
+                content: finalContent,
             },
             select: {
                 id: true,
@@ -88,12 +105,36 @@ const createNote: RequestHandler = asyncHandler(async (req, res) => {
                 },
                 createdAt: true,
                 updatedAt: true
-
             }
-        },
-        404,
-        "Note not found."
-    )
+        })
+    } else {
+        note = await noteQuery.createOrThrow(
+            {
+                data: {
+                    userId,
+                    documentId: document.id,
+                    title: title as string,
+                    content: finalContent,
+                },
+                select: {
+                    id: true,
+                    title: true,
+                    content: true,
+                    documentId: true,
+                    user: {
+                        select: {
+                            id: true,
+                            username: true
+                        }
+                    },
+                    createdAt: true,
+                    updatedAt: true
+                }
+            },
+            404,
+            "Note creation failed."
+        )
+    }
 
     return res
         .status(201)
@@ -101,7 +142,7 @@ const createNote: RequestHandler = asyncHandler(async (req, res) => {
             new ApiResponse(
                 201,
                 note,
-                "Note created successfully."
+                existingNote ? "Note updated successfully." : "Note created successfully."
             )
         )
 })
@@ -165,16 +206,12 @@ const getAllNotes: RequestHandler = asyncHandler(async (req, res) => {
         }
     )
 
-    if (notes.length === 0) {
-        throw new ApiError(404, "Notes not found.")
-    }
-
     return res
         .status(200)
         .json(
             new ApiResponse(
                 200,
-                serializeBigInt(notes),
+                serializeBigInt(notes || []),
                 "Notes fetched successfully."
             )
         )
