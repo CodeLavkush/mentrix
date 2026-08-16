@@ -108,6 +108,8 @@ Upload your study materials, and Mentrix extracts content via **Google Gemini Vi
 - 📇 **Interactive Flashcard Studio**: 3D flip card review cycles with mastery tracking.
 - 🎨 **Cloud Canvas Whiteboard**: Sketch diagrams and save thumbnails directly to MinIO.
 - 🔐 **Secure Authentication**: JWT access/refresh tokens with 6-digit email OTP verification via Mailpit/SMTP.
+- 🖼️ **Profile Picture Customization**: Upload, drag-and-drop, preview, and manage avatars stored in MinIO directly inside Dashboard and Profile studio.
+- 🧭 **Responsive Section Navbar**: Smart adaptive breadcrumb indicators and active section badges tailored for mobile, tablet, and desktop viewports.
 - 🛡️ **Document Readiness Gate**: Guides new users to index materials before accessing document tools.
 - 📱 **Responsive Desktop & Mobile Layouts**: Full-height responsive sidebar and theme toggling (Light/Dark).
 
@@ -199,8 +201,11 @@ cp app/backend/.env.sample app/backend/.env
 
 Default settings in `app/backend/.env`:
 ```env
+PORT=4000
 DATABASE_URL=postgresql://postgres:postgres@postgres:5432/mentrix
 NODE_ENV=development
+
+CORS_ORIGIN=http://localhost:5173,http://localhost:3000,http://localhost:5174
 
 MINIO_ENDPOINT=minio
 MINIO_PORT=9000
@@ -208,6 +213,7 @@ MINIO_USE_SSL=false
 MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=minioadmin123
 MINIO_BUCKET=mentrix-bucket
+MINIO_PUBLIC_URL=http://localhost:9000
 
 SMTP_HOST=mailpit
 SMTP_PORT=1025
