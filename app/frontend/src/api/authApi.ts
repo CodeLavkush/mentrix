@@ -48,4 +48,10 @@ export const authApi = {
 
   resendEmailVerification: (email: string) =>
     apiClient.post<{ message: string }>('/auth/resend-email-verification', { email }),
+
+  updateAvatar: (formData: FormData) =>
+    apiClient.patch<AuthResponseData>('/auth/avatar', formData, { isFormData: true }),
+
+  deleteAvatar: () =>
+    apiClient.delete<AuthResponseData>('/auth/avatar'),
 };

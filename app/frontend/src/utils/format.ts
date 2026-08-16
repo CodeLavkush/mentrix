@@ -26,3 +26,33 @@ export const formatFileSize = (bytes?: number | null): string => {
 
   return `${cleanValue} ${sizes[clampedIndex]}`;
 };
+
+/**
+ * Resolves an avatar URL safely across Docker internal hostnames and relative API endpoints.
+ */
+export const getSafeAvatarUrl = (url?: string | null): string | undefined => {
+  if (!url) return undefined;
+  
+  // If it is a relative API path (/api/v1/auth/avatar/...), prefix with backend base URL
+  if (url.startsWith('/')) {
+    const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api/v1';
+    const serverOrigin = apiBase.replace(/\/api\/v1\/?$/, '');
+    return `${serverOrigin}${url}`;
+  }
+
+  // If the URL points to MinIO S3 avatar path, strip any expired/invalid AWS signatures
+  if (url.includes('/users/avatars/')) {
+    const cleanPath = url.split('?')[0];
+    return cleanPath
+      .replace('http://minio:9000', 'http://localhost:9000')
+      .replace('https://minio:9000', 'http://localhost:9000')
+      .replace('http://mentrix-minio:9000', 'http://localhost:9000')
+      .replace('https://mentrix-minio:9000', 'http://localhost:9000');
+  }
+
+  return url
+    .replace('http://minio:9000', 'http://localhost:9000')
+    .replace('https://minio:9000', 'http://localhost:9000')
+    .replace('http://mentrix-minio:9000', 'http://localhost:9000')
+    .replace('https://mentrix-minio:9000', 'http://localhost:9000');
+};

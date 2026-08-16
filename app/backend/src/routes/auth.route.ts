@@ -2,7 +2,7 @@ import { registerUserValidator, loginValidator } from "../validators/index.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js"
 import { validate } from "../middlewares/validate.middlware.js"
 import { upload } from "../middlewares/upload.middlware.js"
-import { loginUser, registerUser, logoutUser, getCurrentUser, refreshAccessToken, verifyEmail, resendEmailVerification } from "../controllers/auth.controller.js"
+import { loginUser, registerUser, logoutUser, getCurrentUser, refreshAccessToken, verifyEmail, resendEmailVerification, updateUserAvatar, deleteUserAvatar, getAvatarByUserId } from "../controllers/auth.controller.js"
 import { Router } from "express"
 
 
@@ -33,6 +33,16 @@ router
 router
     .route("/current-user")
     .post(verifyJWT, getCurrentUser)
+
+router
+    .route("/avatar/:userId")
+    .get(getAvatarByUserId)
+
+router
+    .route("/avatar")
+    .patch(verifyJWT, upload.single("avatar"), updateUserAvatar)
+    .post(verifyJWT, upload.single("avatar"), updateUserAvatar)
+    .delete(verifyJWT, deleteUserAvatar)
 
 router
     .route("/resend-email-verification")

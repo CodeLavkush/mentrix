@@ -92,6 +92,30 @@ export const updateAcademicProfile = createAsyncThunk(
   }
 );
 
+export const updateUserAvatar = createAsyncThunk(
+  'auth/updateUserAvatar',
+  async (formData: FormData, { rejectWithValue }) => {
+    try {
+      const response = await authApi.updateAvatar(formData);
+      return response.data;
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Failed to update avatar');
+    }
+  }
+);
+
+export const deleteUserAvatar = createAsyncThunk(
+  'auth/deleteUserAvatar',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await authApi.deleteAvatar();
+      return response.data;
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Failed to delete avatar');
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -162,6 +186,8 @@ const authSlice = createSlice({
         state.loading = false;
         if (action.payload?.user) {
           state.user = action.payload.user;
+        } else if (action.payload && !action.payload.user) {
+          state.user = action.payload as any;
         }
         if (action.payload?.academicDetails !== undefined) {
           state.academicDetails = action.payload.academicDetails;
@@ -183,6 +209,34 @@ const authSlice = createSlice({
       // Update Academic Profile
       .addCase(updateAcademicProfile.fulfilled, (state, action) => {
         state.academicDetails = action.payload;
+      })
+      // Update Avatar
+      .addCase(updateUserAvatar.fulfilled, (state, action) => {
+        if (action.payload?.user) {
+          state.user = {
+            ...state.user,
+            ...action.payload.user,
+          };
+        } else if (action.payload) {
+          state.user = {
+            ...state.user,
+            ...(action.payload as any),
+          };
+        }
+      })
+      // Delete Avatar
+      .addCase(deleteUserAvatar.fulfilled, (state, action) => {
+        if (action.payload?.user) {
+          state.user = {
+            ...state.user,
+            ...action.payload.user,
+            avatarUrl: null,
+            avatarKey: null,
+          };
+        } else if (state.user) {
+          state.user.avatarUrl = null;
+          state.user.avatarKey = null;
+        }
       });
   },
 });

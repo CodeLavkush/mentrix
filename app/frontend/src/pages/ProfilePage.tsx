@@ -4,14 +4,16 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { updateAcademicProfile } from '../store/slices/authSlice';
 import { profileApi } from '../api/profileApi';
 import CustomDropdown from '../components/CustomDropdown';
-import { GraduationCap, Save, CheckCircle, AlertCircle } from 'lucide-react';
-
+import { GraduationCap, Save, CheckCircle, AlertCircle, Camera } from 'lucide-react';
+import EditAvatarModal from '../components/EditAvatarModal';
 import showToast from '../utils/toast';
+import { getSafeAvatarUrl } from '../utils/format';
 
 export const ProfilePage: React.FC = () => {
   const dispatch = useAppDispatch();
   const pageRef = useRef<HTMLDivElement | null>(null);
   const { user, academicDetails } = useAppSelector((state) => state.auth);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
 
   const [collegeName, setCollegeName] = useState(academicDetails?.collegeName || '');
   const [universityName, setUniversityName] = useState(academicDetails?.universityName || '');
@@ -114,30 +116,62 @@ export const ProfilePage: React.FC = () => {
   return (
     <div ref={pageRef} className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 font-inter max-w-4xl mx-auto">
       {/* Account Info Card */}
-      <div className="profile-card glass-card p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-5 shadow-xl">
-        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center font-outfit font-extrabold text-2xl text-indigo-500 dark:text-indigo-300 flex-shrink-0 shadow-md">
-          {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
-        </div>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold font-outfit text-slate-900 dark:text-white">{user?.username || 'Student User'}</h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{user?.email}</p>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] text-slate-500 dark:text-slate-400 mt-2">
-            <span>
-              Gender: <strong className="text-slate-800 dark:text-slate-200">{user?.gender || 'N/A'}</strong>
-            </span>
-            <span>•</span>
-            <span>
-              Age: <strong className="text-slate-800 dark:text-slate-200">{user?.age || 'N/A'}</strong>
-            </span>
-            <span
-              className={`px-2 py-0.5 rounded-full font-semibold text-[10px] ${
-                user?.isEmailVerified ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-              }`}
-            >
-              {user?.isEmailVerified ? 'Verified Account' : 'Unverified Email'}
-            </span>
+      <div className="profile-card glass-card p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-5">
+          <div
+            onClick={() => setIsAvatarModalOpen(true)}
+            className="relative group cursor-pointer flex-shrink-0"
+            title="Click to edit your profile picture"
+          >
+            {getSafeAvatarUrl(user?.avatarUrl) ? (
+              <img
+                src={getSafeAvatarUrl(user?.avatarUrl)}
+                alt={user?.username || 'Student'}
+                className="w-16 h-16 rounded-2xl object-cover border-2 border-indigo-500/40 shadow-lg group-hover:border-indigo-400 group-hover:scale-105 transition-all duration-200"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center font-outfit font-extrabold text-2xl text-indigo-500 dark:text-indigo-300 flex-shrink-0 shadow-md group-hover:scale-105 transition-all duration-200">
+                {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
+              </div>
+            )}
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-md group-hover:bg-indigo-500 group-hover:scale-110 transition-transform">
+              <Camera className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold font-outfit text-slate-900 dark:text-white">
+              {user?.username || 'Student User'}
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{user?.email}</p>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] text-slate-500 dark:text-slate-400 mt-2">
+              <span>
+                Gender: <strong className="text-slate-800 dark:text-slate-200">{user?.gender || 'N/A'}</strong>
+              </span>
+              <span>•</span>
+              <span>
+                Age: <strong className="text-slate-800 dark:text-slate-200">{user?.age || 'N/A'}</strong>
+              </span>
+              <span
+                className={`px-2 py-0.5 rounded-full font-semibold text-[10px] ${
+                  user?.isEmailVerified
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                }`}
+              >
+                {user?.isEmailVerified ? 'Verified Account' : 'Unverified Email'}
+              </span>
+            </div>
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setIsAvatarModalOpen(true)}
+          className="px-3.5 py-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer shadow-sm"
+        >
+          <Camera className="w-4 h-4" />
+          <span>Change Picture</span>
+        </button>
       </div>
 
       {/* Academic Details Form */}
@@ -256,6 +290,12 @@ export const ProfilePage: React.FC = () => {
           </div>
         </form>
       </div>
+
+      {/* Edit Profile Picture Modal */}
+      <EditAvatarModal
+        isOpen={isAvatarModalOpen}
+        onClose={() => setIsAvatarModalOpen(false)}
+      />
     </div>
   );
 };

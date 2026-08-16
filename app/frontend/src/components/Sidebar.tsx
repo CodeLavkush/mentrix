@@ -23,6 +23,7 @@ import { logoutUser } from '../store/slices/authSlice';
 import { toggleSidebar, setSidebarOpen } from '../store/slices/uiSlice';
 import mentrixLogo from '../assets/mentrix_logo.png';
 import showToast from '../utils/toast';
+import { getSafeAvatarUrl } from '../utils/format';
 
 export const Sidebar: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -272,9 +273,17 @@ export const Sidebar: React.FC = () => {
             }`}
           >
             <div className="flex items-center space-x-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 border border-indigo-400/40 flex items-center justify-center font-outfit font-bold text-white text-xs flex-shrink-0 shadow-md">
-                {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
-              </div>
+              {getSafeAvatarUrl(user?.avatarUrl) ? (
+                <img
+                  src={getSafeAvatarUrl(user?.avatarUrl)}
+                  alt={user?.username || 'Student'}
+                  className="w-8 h-8 rounded-full object-cover border border-indigo-400/40 flex-shrink-0 shadow-md"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 border border-indigo-400/40 flex items-center justify-center font-outfit font-bold text-white text-xs flex-shrink-0 shadow-md">
+                  {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
+                </div>
+              )}
               {sidebarOpen && (
                 <div className="truncate">
                   <div className="text-xs font-semibold text-slate-900 dark:text-white truncate flex items-center space-x-1">

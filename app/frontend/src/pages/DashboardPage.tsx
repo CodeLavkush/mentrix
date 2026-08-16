@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -19,15 +19,18 @@ import {
   Bot,
   Upload,
   Lock,
+  Camera,
 } from 'lucide-react';
-import { formatFileSize } from '../utils/format';
+import { formatFileSize, getSafeAvatarUrl } from '../utils/format';
 import DocumentStatusBadge from '../components/DocumentStatusBadge';
+import EditAvatarModal from '../components/EditAvatarModal';
 import showToast from '../utils/toast';
 
 export const DashboardPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
 
   const { user } = useAppSelector((state) => state.auth);
   const { documents, activeDocument } = useAppSelector((state) => state.document);
@@ -154,11 +157,44 @@ export const DashboardPage: React.FC = () => {
         className="dash-hero-anim glass-card spotlight-surface p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800/80 relative overflow-hidden flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 sm:gap-8 shadow-2xl"
       >
         <div className="space-y-4 max-w-2xl z-10">
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+            {/* Interactive User Avatar Badge with Camera Edit Trigger */}
+            <div
+              onClick={() => setIsAvatarModalOpen(true)}
+              className="relative group cursor-pointer flex-shrink-0"
+              title="Click to edit your profile picture"
+            >
+              {getSafeAvatarUrl(user?.avatarUrl) ? (
+                <img
+                  src={getSafeAvatarUrl(user?.avatarUrl)}
+                  alt={user?.username || 'User'}
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl object-cover border-2 border-indigo-500/40 shadow-lg group-hover:border-indigo-400 group-hover:scale-105 transition-all duration-200"
+                />
+              ) : (
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 border border-indigo-400/40 flex items-center justify-center font-outfit font-extrabold text-white text-sm sm:text-base shadow-lg group-hover:scale-105 transition-all duration-200">
+                  {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
+                </div>
+              )}
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-md group-hover:bg-indigo-500 group-hover:scale-110 transition-transform">
+                <Camera className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+              </div>
+            </div>
+
             <span className="glow-pill">
               <Sparkles className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
               <span>{getTimeGreeting()}, {user?.username || 'Student'}</span>
             </span>
+
+            <button
+              type="button"
+              onClick={() => setIsAvatarModalOpen(true)}
+              className="px-2.5 py-1 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer shadow-sm active:scale-95"
+              title="Change your profile picture"
+            >
+              <Camera className="w-3 h-3" />
+              <span>Edit Photo</span>
+            </button>
+
             <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center space-x-1">
               <Activity className="w-3 h-3" />
               <span>AI Engine Active</span>
@@ -432,6 +468,12 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Edit Profile Picture Modal */}
+      <EditAvatarModal
+        isOpen={isAvatarModalOpen}
+        onClose={() => setIsAvatarModalOpen(false)}
+      />
     </div>
   );
 };
