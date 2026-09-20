@@ -67,4 +67,4 @@ COPY --from=builder /app/package.json ./package.json
 
 EXPOSE 4000
 
-CMD ["node", "dist/index.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && exec node dist/index.js"]

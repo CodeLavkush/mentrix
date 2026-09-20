@@ -49,7 +49,7 @@ services:
       - mentrix-network
 
   minio:
-    image: minio/minio:latest
+    image: elestio/minio
     container_name: mentrix-minio
     restart: unless-stopped
 
@@ -238,4 +238,3 @@ volumes:
 networks:
   mentrix-network:
     driver: bridge
-
