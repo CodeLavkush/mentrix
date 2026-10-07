@@ -11,9 +11,13 @@ const mailGenerator = new Mailgen({
 });
 
 const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "localhost",
-    port: Number(process.env.SMTP_PORT || 1025),
+    host: process.env.SMTP_HOST || "smtp-relay.brevo.com",
+    port: Number(process.env.SMTP_PORT || 587),
     secure: false,
+    auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+    },
 });
 
 const sendEmail = async ({
@@ -28,7 +32,7 @@ const sendEmail = async ({
         mailGenerator.generate(mailgenContent);
 
     const mail = {
-        from: `"Mentrix" <no-reply@mentrix.local>`,
+        from: `"Mentrix" ${process.env.SMTP_FROM_EMAIL}`,
         to: email,
         subject,
         text: emailTextual,
