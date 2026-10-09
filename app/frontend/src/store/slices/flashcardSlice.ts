@@ -56,11 +56,27 @@ export const createFlashcardSet = createAsyncThunk(
   }
 );
 
-export const fetchCardsBySet = createAsyncThunk(
-  'flashcard/fetchCardsBySet',
+export const fetchSetProgress = createAsyncThunk(
+  'flashcard/fetchSetProgress',
   async (flashcardSetId: string, { rejectWithValue }) => {
     try {
+      const response = await flashcardApi.getProgressBySet(flashcardSetId);
+      return response.data || [];
+    } catch (err: any) {
+      if (err.statusCode === 404) {
+        return [];
+      }
+      return rejectWithValue(err.message || 'Failed to fetch flashcard progress');
+    }
+  }
+);
+
+export const fetchCardsBySet = createAsyncThunk(
+  'flashcard/fetchCardsBySet',
+  async (flashcardSetId: string, { rejectWithValue, dispatch }) => {
+    try {
       const response = await flashcardApi.getCardsBySet(flashcardSetId);
+      dispatch(fetchSetProgress(flashcardSetId));
       return response.data;
     } catch (err: any) {
       if (err.statusCode === 404) {
@@ -143,10 +159,32 @@ const flashcardSlice = createSlice({
       .addCase(fetchCardsBySet.rejected, (state) => {
         state.loading = false;
       })
+      // Fetch Set Progress
+      .addCase(fetchSetProgress.fulfilled, (state, action) => {
+        const newMap = { ...state.progressMap };
+        if (Array.isArray(action.payload)) {
+          action.payload.forEach((prog) => {
+            if (prog?.flashcardId) {
+              newMap[prog.flashcardId] = {
+                ...prog,
+                masteryLevel: Number(prog.masteryLevel || 0),
+                reviewCount: Number(prog.reviewCount || 0),
+                correctCount: Number(prog.correctCount || 0),
+              };
+            }
+          });
+        }
+        state.progressMap = newMap;
+      })
       // Update Progress
       .addCase(updateCardProgress.fulfilled, (state, action) => {
         if (action.payload?.flashcardId) {
-          state.progressMap[action.payload.flashcardId] = action.payload;
+          state.progressMap[action.payload.flashcardId] = {
+            ...action.payload,
+            masteryLevel: Number(action.payload.masteryLevel || 0),
+            reviewCount: Number(action.payload.reviewCount || 0),
+            correctCount: Number(action.payload.correctCount || 0),
+          };
         }
       });
   },

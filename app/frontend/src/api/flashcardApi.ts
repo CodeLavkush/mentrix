@@ -23,6 +23,9 @@ export const flashcardApi = {
   getCardsBySet: (flashcardSetId: string) =>
     apiClient.get<Flashcard[]>(`/flashcards/${flashcardSetId}`),
 
+  getProgressBySet: (flashcardSetId: string) =>
+    apiClient.get<FlashcardProgress[]>(`/flashcard-progress/set/${flashcardSetId}`),
+
   updateProgress: (flashcardId: string, isCorrect: boolean) =>
     apiClient.post<FlashcardProgress>(`/flashcard-progress/${flashcardId}`, { isCorrect }),
 };

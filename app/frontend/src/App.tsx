@@ -131,17 +131,19 @@ export const App: React.FC = () => {
   const { token, user } = useAppSelector((state) => state.auth);
   const { theme } = useAppSelector((state) => state.ui);
 
-  // Sync theme class and data-theme to HTML root
+  // Sync theme class, data-theme, and colorScheme to HTML root
   useEffect(() => {
     const root = document.documentElement;
     if (theme === 'light') {
       root.classList.remove('dark');
       root.classList.add('light');
       root.setAttribute('data-theme', 'light');
+      root.style.colorScheme = 'light';
     } else {
       root.classList.remove('light');
       root.classList.add('dark');
       root.setAttribute('data-theme', 'dark');
+      root.style.colorScheme = 'dark';
     }
   }, [theme]);
 

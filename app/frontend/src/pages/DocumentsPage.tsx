@@ -134,14 +134,14 @@ export const DocumentsPage: React.FC = () => {
   return (
     <div ref={pageRef} className="p-8 space-y-8 font-inter">
       {/* Upload Zone */}
-      <div className="doc-anim-zone glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
-        <h2 className="text-xl font-bold font-outfit text-white flex items-center space-x-2">
-          <Upload className="w-5 h-5 text-indigo-400" />
+      <div className="doc-anim-zone glass-card p-6 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+        <h2 className="text-xl font-bold font-outfit text-slate-900 dark:text-white flex items-center space-x-2">
+          <Upload className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
           <span>Upload Study Material</span>
         </h2>
 
         {error && (
-          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center space-x-2">
+          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs flex items-center space-x-2">
             <AlertCircle className="w-4 h-4" />
             <span>{error}</span>
           </div>
@@ -150,12 +150,11 @@ export const DocumentsPage: React.FC = () => {
         <div
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
-          onDragOver={handleDrag}
           onDrop={handleDrop}
           className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
             dragActive
               ? 'border-indigo-500 bg-indigo-500/10'
-              : 'border-slate-800 bg-slate-950/40 hover:border-slate-700'
+              : 'border-slate-300 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40 hover:border-indigo-400 dark:hover:border-slate-700'
           }`}
         >
           <input
@@ -166,14 +165,14 @@ export const DocumentsPage: React.FC = () => {
             accept=".pdf,.docx,.txt"
           />
           <label htmlFor="file-upload" className="cursor-pointer space-y-3 block">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto">
+            <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto">
               <File className="w-7 h-7" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-white font-outfit">
+              <p className="text-sm font-semibold text-slate-900 dark:text-white font-outfit">
                 {selectedFile ? selectedFile.name : 'Click to upload or drag & drop file'}
               </p>
-              <p className="text-xs text-slate-400 mt-1">PDF, DOCX, or TXT (Max 16MB)</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">PDF, DOCX, or TXT (Max 16MB)</p>
             </div>
           </label>
         </div>
@@ -183,7 +182,7 @@ export const DocumentsPage: React.FC = () => {
             <button
               onClick={handleUpload}
               disabled={uploading}
-              className="glow-btn px-6 py-2.5 rounded-xl text-white font-semibold text-xs flex items-center space-x-2 disabled:opacity-50 cursor-pointer"
+              className="glow-btn px-6 py-2.5 rounded-xl text-white font-semibold text-xs flex items-center space-x-2 disabled:opacity-50 cursor-pointer shadow-md"
             >
               <Upload className="w-4 h-4" />
               <span>{uploading ? 'Uploading...' : 'Confirm Upload'}</span>
@@ -194,14 +193,14 @@ export const DocumentsPage: React.FC = () => {
 
       {/* Documents Grid */}
       <div className="space-y-4">
-        <h2 className="text-xl font-bold font-outfit text-white">Your Documents ({documents.length})</h2>
+        <h2 className="text-xl font-bold font-outfit text-slate-900 dark:text-white">Your Documents ({documents.length})</h2>
 
         {loading ? (
-          <div className="text-center py-12 text-slate-400 text-sm">Loading documents...</div>
+          <div className="text-center py-12 text-slate-500 dark:text-slate-400 text-sm">Loading documents...</div>
         ) : documents.length === 0 ? (
-          <div className="glass-panel p-12 rounded-2xl text-center text-slate-400 border border-slate-800 space-y-2">
-            <FileText className="w-12 h-12 text-slate-600 mx-auto" />
-            <p className="text-base font-semibold text-white font-outfit">No documents uploaded yet</p>
+          <div className="glass-panel p-12 rounded-2xl text-center text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 space-y-2">
+            <FileText className="w-12 h-12 text-slate-400 dark:text-slate-600 mx-auto" />
+            <p className="text-base font-semibold text-slate-900 dark:text-white font-outfit">No documents uploaded yet</p>
             <p className="text-xs">Upload your first file above to unlock AI study features.</p>
           </div>
         ) : (
@@ -214,24 +213,24 @@ export const DocumentsPage: React.FC = () => {
                   onClick={() => handleSelectDoc(doc)}
                   className={`doc-card glass-card p-5 rounded-2xl border transition-all cursor-pointer relative group ${
                     isActive
-                      ? 'border-indigo-500 bg-indigo-950/20 shadow-lg shadow-indigo-500/10'
-                      : 'border-slate-800/80 hover:border-slate-700'
+                      ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20 shadow-lg shadow-indigo-500/10'
+                      : 'border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center space-x-3">
                       <div
                         className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                          isActive ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400'
+                          isActive ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                         }`}
                       >
                         <FileText className="w-5 h-5" />
                       </div>
                       <div className="max-w-[170px]">
-                        <h3 className="text-sm font-bold font-outfit text-white truncate" title={doc.fileName}>
+                        <h3 className="text-sm font-bold font-outfit text-slate-900 dark:text-white truncate" title={doc.fileName}>
                           {doc.fileName}
                         </h3>
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wider">{doc.fileType}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">{doc.fileType}</p>
                       </div>
                     </div>
                     <DocumentStatusBadge status={doc.uploadStatus} isActive={isActive} />
@@ -245,14 +244,14 @@ export const DocumentsPage: React.FC = () => {
                         target="_blank"
                         rel="noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="p-1.5 hover:text-indigo-400 hover:bg-slate-800 rounded transition"
+                        className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition"
                         title="Download Document"
                       >
                         <ExternalLink className="w-4 h-4" />
                       </a>
                       <button
                         onClick={(e) => handleDelete(doc.id, e)}
-                        className="p-1.5 hover:text-red-400 hover:bg-red-500/10 rounded transition"
+                        className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 rounded transition cursor-pointer"
                         title="Delete Document"
                       >
                         <Trash2 className="w-4 h-4" />

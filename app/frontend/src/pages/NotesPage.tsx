@@ -329,17 +329,17 @@ export const NotesPage: React.FC = () => {
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
             placeholder="Note Title (e.g. Chapter 1 Summary)..."
-            className="w-full glass-input px-4 py-3 rounded-xl text-sm font-bold font-outfit text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500"
+            className="w-full glass-input px-4 py-3 rounded-xl text-sm font-bold font-outfit text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-indigo-500"
           />
         </div>
 
         {/* Main Editor / Markdown Preview Area */}
         {previewMode ? (
-          <div className="flex-1 glass-panel p-5 rounded-xl border border-slate-800/80 overflow-y-auto min-h-[260px]">
+          <div className="flex-1 glass-panel p-5 rounded-xl border border-slate-200 dark:border-slate-800/80 overflow-y-auto min-h-[260px]">
             {content ? (
               <MarkdownRenderer content={content} />
             ) : (
-              <p className="text-xs text-slate-500 italic">No content to preview.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 italic">No content to preview.</p>
             )}
           </div>
         ) : (
@@ -348,12 +348,12 @@ export const NotesPage: React.FC = () => {
             value={content}
             onChange={(e) => handleContentChange(e.target.value)}
             placeholder="Type your notes, AI insights, code snippets, or markdown here..."
-            className="flex-1 glass-input p-4 rounded-xl text-xs font-mono leading-relaxed resize-none focus:outline-none min-h-[260px]"
+            className="flex-1 glass-input p-4 rounded-xl text-xs font-mono leading-relaxed resize-none focus:outline-none min-h-[260px] text-slate-900 dark:text-white"
           />
         )}
 
         {/* Status Bar */}
-        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-800/80">
+        <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200 dark:border-slate-800/80">
           <div className="flex items-center space-x-3">
             <span>{wordCount} words</span>
             <span>{charCount} characters</span>

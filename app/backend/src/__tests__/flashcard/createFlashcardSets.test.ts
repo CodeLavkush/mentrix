@@ -349,6 +349,15 @@ describe(
 
                         quizId:
                             true,
+
+                        score:
+                            true,
+
+                        totalMarks:
+                            true,
+
+                        percentage:
+                            true,
                     },
                 });
 
@@ -659,6 +668,81 @@ describe(
                     response.body.message
                 ).toBe(
                     "Quiz attempt not found."
+                );
+
+
+                expect(
+                    mockQuizQuestionsFindMany
+                ).not.toHaveBeenCalled();
+
+
+                expect(
+                    mockFetch
+                ).not.toHaveBeenCalled();
+            }
+        );
+
+
+        // ==================================================
+        // 3b. QUIZ ATTEMPT SCORE 70% OR HIGHER
+        // ==================================================
+
+        it(
+            "should return 400 when quiz attempt score is 70% or higher",
+            async () => {
+
+                mockFindFirst
+                    .mockResolvedValue({
+                        id:
+                            "user-id-123",
+                    });
+
+
+                mockQuizAttemptsFindFirst
+                    .mockResolvedValue({
+                        id:
+                            "attempt-id-123",
+
+                        quizId:
+                            "quiz-id-123",
+
+                        score:
+                            8,
+
+                        totalMarks:
+                            10,
+
+                        percentage:
+                            80,
+                    });
+
+
+                const response =
+                    await request(app)
+                        .post(
+                            "/api/v1/flashcardsets/attempt-id-123"
+                        )
+                        .send({
+                            title:
+                                "JavaScript Flashcards",
+
+                            topic:
+                                "JavaScript Basics",
+
+                            totalCards:
+                                5,
+                        });
+
+
+                expect(
+                    response.status
+                ).toBe(400);
+
+
+                expect(
+                    response.body.message
+                ).toContain(
+                    "Flashcards can only be generated for low-scoring quiz attempts (< 70%)"
                 );
 
 

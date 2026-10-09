@@ -193,7 +193,12 @@ const quizSlice = createSlice({
       })
       // Fetch Attempts
       .addCase(fetchQuizAttempts.fulfilled, (state, action) => {
-        state.attempts = action.payload || [];
+        const incoming = action.payload || [];
+        const existingMap = new Map(state.attempts.map((att) => [att.id, att]));
+        incoming.forEach((att: QuizAttempt) => {
+          existingMap.set(att.id, att);
+        });
+        state.attempts = Array.from(existingMap.values());
       });
   },
 });

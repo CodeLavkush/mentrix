@@ -5,6 +5,7 @@ import { ApiResponse } from "../utils/api-response.js"
 import { userQuery } from "../queries/user.query.js"
 import { flashcardQuery } from "../queries/flashcard.query.js"
 import { flashcardProgressQuery } from "../queries/flashcardprogress.query.js"
+import { flashcardSetQuery } from "../queries/flashcardset.query.js"
 
 
 import { prisma } from "../db/prisma.js"
@@ -179,12 +180,75 @@ const getAllFlashcardProgress: RequestHandler = asyncHandler(async (req, res) =>
         }
     })
 
+    if (!flashcardProgress || flashcardProgress.length === 0) {
+        throw new ApiError(404, "Flashcard progress not found.")
+    }
+
     return res
         .status(200)
         .json(
             new ApiResponse(
                 200,
-                flashcardProgress || [],
+                flashcardProgress,
+                "Flashcard progress fetched successfully."
+            )
+        )
+})
+
+const getFlashcardProgressBySet: RequestHandler = asyncHandler(async (req, res) => {
+    const userId = req.user?.id
+    const { flashcardSetId } = req.params
+
+    await userQuery.findFirstOrThrow(
+        {
+            where: {
+                id: userId
+            },
+            select: {
+                id: true
+            }
+        },
+        404,
+        "User does not exists."
+    )
+
+    const flashcardSet = await flashcardSetQuery.findFirstOrThrow(
+        {
+            where: {
+                id: flashcardSetId as string,
+            },
+            select: {
+                id: true
+            }
+        },
+        404,
+        "Flashcard sets does not exists."
+    )
+
+    const progressList = await flashcardProgressQuery.findMany({
+        where: {
+            userId,
+            flashcard: {
+                flashcardSetId: flashcardSet.id,
+            }
+        },
+        select: {
+            id: true,
+            userId: true,
+            reviewCount: true,
+            correctCount: true,
+            lastReviewed: true,
+            masteryLevel: true,
+            flashcardId: true,
+        }
+    })
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                progressList || [],
                 "Flashcard progress fetched successfully."
             )
         )
@@ -301,6 +365,7 @@ const deleteAllFlashcardProgress: RequestHandler = asyncHandler(async (req, res)
 export {
     createFlashcardProgress,
     getAllFlashcardProgress,
+    getFlashcardProgressBySet,
     deleteAllFlashcardProgress,
     deleteFlashcardProgressById,
 }

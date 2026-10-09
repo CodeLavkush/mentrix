@@ -119,9 +119,9 @@ export const WhiteboardPage: React.FC = () => {
   return (
     <div ref={pageRef} className="p-8 space-y-6 font-inter">
       {/* Top Studio Controls */}
-      <div className="wb-top-bar glass-card p-5 rounded-2xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl">
+      <div className="wb-top-bar glass-card p-5 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl">
         <div className="flex items-center space-x-3 flex-1">
-          <div className="w-10 h-10 rounded-xl bg-pink-500/20 text-pink-400 border border-pink-500/30 flex items-center justify-center shadow-md">
+          <div className="w-10 h-10 rounded-xl bg-pink-500/10 dark:bg-pink-500/20 text-pink-600 dark:text-pink-400 border border-pink-500/30 flex items-center justify-center shadow-md">
             <Edit3 className="w-5 h-5" />
           </div>
           <div>
@@ -133,7 +133,7 @@ export const WhiteboardPage: React.FC = () => {
                 dispatch(setDraftCanvas({ title: e.target.value, drawingData: currentCanvasData }));
               }}
               placeholder="Whiteboard Title..."
-              className="glass-input px-4 py-2 rounded-xl text-base font-bold font-outfit max-w-sm text-white"
+              className="glass-input px-4 py-2 rounded-xl text-base font-bold font-outfit max-w-sm text-slate-900 dark:text-white"
             />
           </div>
         </div>
@@ -142,7 +142,7 @@ export const WhiteboardPage: React.FC = () => {
           <button
             type="button"
             onClick={handleCreateNew}
-            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 flex items-center space-x-1.5 transition cursor-pointer shadow-md"
+            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 flex items-center space-x-1.5 transition cursor-pointer shadow-sm"
           >
             <Plus className="w-4 h-4" />
             <span>New Canvas</span>
@@ -160,7 +160,7 @@ export const WhiteboardPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center space-x-2">
+        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs flex items-center space-x-2">
           <AlertCircle className="w-4 h-4" />
           <span>{error}</span>
         </div>
@@ -177,22 +177,22 @@ export const WhiteboardPage: React.FC = () => {
         </div>
 
         {/* Saved Whiteboards Sidebar with Visual Thumbnails */}
-        <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-4 max-h-[580px] flex flex-col shadow-xl">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 className="text-sm font-bold font-outfit text-white flex items-center space-x-2">
-              <ImageIcon className="w-4 h-4 text-pink-400" />
+        <div className="glass-card p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-h-[580px] flex flex-col shadow-xl">
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+            <h3 className="text-sm font-bold font-outfit text-slate-900 dark:text-white flex items-center space-x-2">
+              <ImageIcon className="w-4 h-4 text-pink-600 dark:text-pink-400" />
               <span>Saved Boards</span>
             </h3>
-            <span className="text-xs text-slate-400 font-normal">({whiteboards.length})</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-normal">({whiteboards.length})</span>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-3 pr-1">
             {loading && whiteboards.length === 0 ? (
-              <div className="text-center py-8 text-xs text-slate-400">Loading whiteboards...</div>
+              <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400">Loading whiteboards...</div>
             ) : whiteboards.length === 0 ? (
               <div className="text-center py-8 space-y-2">
-                <Sparkles className="w-8 h-8 text-slate-600 mx-auto" />
-                <p className="text-xs text-slate-400">No saved whiteboards yet.</p>
+                <Sparkles className="w-8 h-8 text-slate-400 dark:text-slate-600 mx-auto" />
+                <p className="text-xs text-slate-500 dark:text-slate-400">No saved whiteboards yet.</p>
               </div>
             ) : (
               whiteboards.map((wb: Whiteboard) => {
@@ -223,12 +223,12 @@ export const WhiteboardPage: React.FC = () => {
                     onClick={() => dispatch(setActiveWhiteboard(wb))}
                     className={`p-3 rounded-xl border transition-all cursor-pointer space-y-2 group ${
                       isSelected
-                        ? 'bg-pink-500/20 border-pink-500 text-white shadow-lg ring-1 ring-pink-500/40'
-                        : 'bg-slate-900/50 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-900/80'
+                        ? 'bg-pink-500/20 border-pink-500 text-slate-900 dark:text-white shadow-lg ring-1 ring-pink-500/40'
+                        : 'bg-slate-100/80 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-200/60 dark:hover:bg-slate-900/80'
                     }`}
                   >
                     {/* Thumbnail Preview Banner */}
-                    <div className="w-full h-24 rounded-lg bg-slate-950/80 border border-slate-800/80 overflow-hidden flex items-center justify-center relative">
+                    <div className="w-full h-24 rounded-lg bg-slate-100 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/80 overflow-hidden flex items-center justify-center relative">
                       {thumbImg ? (
                         <img
                           src={thumbImg}
@@ -240,7 +240,7 @@ export const WhiteboardPage: React.FC = () => {
                           }}
                         />
                       ) : (
-                        <div className="flex flex-col items-center space-y-1 text-slate-600">
+                        <div className="flex flex-col items-center space-y-1 text-slate-400 dark:text-slate-600">
                           <ImageIcon className="w-6 h-6" />
                           <span className="text-[10px]">No Preview</span>
                         </div>
@@ -250,8 +250,8 @@ export const WhiteboardPage: React.FC = () => {
                     {/* Metadata Header & Delete Button */}
                     <div className="flex items-center justify-between pt-1">
                       <div className="truncate pr-2">
-                        <h4 className="text-xs font-bold font-outfit truncate text-white">{wb.title}</h4>
-                        <div className="flex items-center space-x-1.5 text-[10px] text-slate-400 mt-0.5">
+                        <h4 className="text-xs font-bold font-outfit truncate text-slate-900 dark:text-white">{wb.title}</h4>
+                        <div className="flex items-center space-x-1.5 text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                           <Clock className="w-3 h-3" />
                           <span>{wb.createdAt ? new Date(wb.createdAt).toLocaleDateString() : 'Recent'}</span>
                         </div>
@@ -259,7 +259,7 @@ export const WhiteboardPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={(e) => handleDelete(wb.id, e)}
-                        className="p-1.5 hover:text-red-400 hover:bg-red-500/10 text-slate-500 rounded-lg transition cursor-pointer flex-shrink-0"
+                        className="p-1.5 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 text-slate-400 dark:text-slate-500 rounded-lg transition cursor-pointer flex-shrink-0"
                         title="Delete Whiteboard"
                       >
                         <Trash2 className="w-3.5 h-3.5" />

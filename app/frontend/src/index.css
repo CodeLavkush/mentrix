@@ -1,6 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
+/* Enable class-based dark mode in Tailwind v4 across all displays & devices */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-outfit: 'Outfit', sans-serif;
   --font-inter: 'Inter', sans-serif;
@@ -9,53 +12,58 @@
   --color-primary: #6366F1;
   --color-secondary: #0F172A;
   --color-accent: #8B5CF6;
-  --color-background: #07090E;
-  --color-surface: #0D1322;
+  --color-background: #080C16;
+  --color-surface: #0E1626;
   --color-btn: #6366F1;
 }
 
-:root {
+:root, .dark, html.dark {
   --font-outfit: 'Outfit', sans-serif;
   --font-inter: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   --color-primary: #6366F1;
   --color-secondary: #0F172A;
   --color-accent: #8B5CF6;
-  --color-background: #07090E;
-  --color-surface: #0D1322;
+  --color-background: #080C16;
+  --color-surface: #0E1626;
   --color-btn: #6366F1;
 
-  --bg-main: #07090E;
-  --text-main: #F1F5F9;
+  --bg-main: #080C16;
+  --text-main: #F8FAFC;
   --text-muted: #94A3B8;
-  --panel-bg: rgba(13, 19, 34, 0.75);
-  --panel-border: rgba(255, 255, 255, 0.08);
-  --card-bg: rgba(11, 16, 28, 0.85);
-  --card-border: rgba(255, 255, 255, 0.08);
-  --card-hover-border: rgba(99, 102, 241, 0.4);
-  --input-bg: rgba(7, 10, 18, 0.65);
-  --input-border: rgba(255, 255, 255, 0.1);
+  --panel-bg: rgba(14, 22, 38, 0.85);
+  --panel-border: rgba(255, 255, 255, 0.12);
+  --card-bg: rgba(14, 22, 38, 0.9);
+  --card-border: rgba(255, 255, 255, 0.12);
+  --card-hover-border: rgba(99, 102, 241, 0.55);
+  --input-bg: rgba(7, 11, 20, 0.85);
+  --input-border: rgba(255, 255, 255, 0.16);
   --subtle-bg: rgba(15, 23, 42, 0.7);
   --subtle-border: rgba(51, 65, 85, 0.6);
-  --shadow-elevated: 0 4px 24px -1px rgba(0, 0, 0, 0.4);
+  --shadow-elevated: 0 8px 32px -4px rgba(0, 0, 0, 0.5);
 }
 
 .light, [data-theme="light"], html.light {
+  --color-primary: #6366F1;
+  --color-secondary: #0F172A;
+  --color-accent: #8B5CF6;
   --color-background: #F8FAFC;
   --color-surface: #FFFFFF;
+  --color-btn: #6366F1;
+
   --bg-main: #F8FAFC;
   --text-main: #0F172A;
-  --text-muted: #64748B;
-  --panel-bg: rgba(255, 255, 255, 0.88);
-  --panel-border: rgba(226, 232, 240, 0.95);
-  --card-bg: rgba(255, 255, 255, 0.95);
-  --card-border: rgba(226, 232, 240, 0.95);
-  --card-hover-border: rgba(99, 102, 241, 0.5);
+  --text-muted: #475569;
+  --panel-bg: rgba(255, 255, 255, 0.94);
+  --panel-border: #CBD5E1;
+  --card-bg: #FFFFFF;
+  --card-border: #E2E8F0;
+  --card-hover-border: rgba(99, 102, 241, 0.6);
   --input-bg: #FFFFFF;
-  --input-border: #CBD5E1;
+  --input-border: #94A3B8;
   --subtle-bg: #F1F5F9;
-  --subtle-border: #E2E8F0;
-  --shadow-elevated: 0 4px 20px -2px rgba(0, 0, 0, 0.06);
+  --subtle-border: #CBD5E1;
+  --shadow-elevated: 0 4px 20px -2px rgba(15, 23, 42, 0.08);
 }
 
 /* Base Styles */
@@ -245,9 +253,18 @@ h1, h2, h3, h4, h5, h6 {
   transform: rotateY(180deg);
 }
 
-/* Light Mode Universal Overrides for Maximum Readability */
+/* Universal Theme System & Display Optimization */
+.dark, html.dark {
+  color-scheme: dark;
+}
+
 .light, html.light {
   color-scheme: light;
+}
+
+.dark body, html.dark body {
+  color: #F8FAFC;
+  background-color: #080C16;
 }
 
 .light body, html.light body {
@@ -255,16 +272,19 @@ h1, h2, h3, h4, h5, h6 {
   background-color: #F8FAFC !important;
 }
 
-.light h1, .light h2, .light h3, .light h4, .light h5, .light h6,
-html.light h1, html.light h2, html.light h3, html.light h4, html.light h5, html.light h6 {
+/* Light Mode Headings */
+.light h1:not([class*="text-indigo-"]):not([class*="text-purple-"]):not([class*="text-emerald-"]):not([class*="text-amber-"]):not([class*="text-pink-"]):not([class*="text-cyan-"]),
+.light h2:not([class*="text-indigo-"]):not([class*="text-purple-"]):not([class*="text-emerald-"]):not([class*="text-amber-"]):not([class*="text-pink-"]):not([class*="text-cyan-"]),
+.light h3:not([class*="text-indigo-"]):not([class*="text-purple-"]):not([class*="text-emerald-"]):not([class*="text-amber-"]):not([class*="text-pink-"]):not([class*="text-cyan-"]),
+.light h4, .light h5, .light h6,
+html.light h1:not([class*="text-indigo-"]):not([class*="text-purple-"]):not([class*="text-emerald-"]):not([class*="text-amber-"]):not([class*="text-pink-"]):not([class*="text-cyan-"]),
+html.light h2:not([class*="text-indigo-"]):not([class*="text-purple-"]):not([class*="text-emerald-"]):not([class*="text-amber-"]):not([class*="text-pink-"]):not([class*="text-cyan-"]),
+html.light h3:not([class*="text-indigo-"]):not([class*="text-purple-"]):not([class*="text-emerald-"]):not([class*="text-amber-"]):not([class*="text-pink-"]):not([class*="text-cyan-"]),
+html.light h4, html.light h5, html.light h6 {
   color: #0F172A !important;
 }
 
-.light .text-white:not(.glow-btn):not(.glow-btn *):not(.bg-indigo-600 *):not(.bg-purple-600 *):not(.bg-pink-600 *):not(.bg-emerald-600 *):not(.bg-red-600 *):not(.text-white-force),
-html.light .text-white:not(.glow-btn):not(.glow-btn *):not(.bg-indigo-600 *):not(.bg-purple-600 *):not(.bg-pink-600 *):not(.bg-emerald-600 *):not(.bg-red-600 *):not(.text-white-force) {
-  color: #0F172A !important;
-}
-
+/* Light Mode Text Legibility (Ensures WCAG AA 4.5:1+ contrast on all displays) */
 .light .text-slate-100, html.light .text-slate-100,
 .light .text-slate-200, html.light .text-slate-200 {
   color: #1E293B !important;
@@ -275,56 +295,72 @@ html.light .text-white:not(.glow-btn):not(.glow-btn *):not(.bg-indigo-600 *):not
 }
 
 .light .text-slate-400, html.light .text-slate-400 {
-  color: #64748B !important;
+  color: #475569 !important;
 }
 
 .light .text-slate-500, html.light .text-slate-500 {
   color: #64748B !important;
 }
 
-/* Light Background Overrides */
-.light .bg-slate-900, html.light .bg-slate-900,
-.light .bg-slate-950, html.light .bg-slate-950 {
-  background-color: #F1F5F9 !important;
+/* Ensure text-white on neutral surfaces switches to dark text in light mode,
+   while protecting colored buttons and badges */
+.light .text-white:not(.glow-btn):not(.glow-btn *):not([class*="bg-indigo-"]):not([class*="bg-purple-"]):not([class*="bg-pink-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-amber-"]):not([class*="bg-gradient-"]):not(.text-white-force),
+html.light .text-white:not(.glow-btn):not(.glow-btn *):not([class*="bg-indigo-"]):not([class*="bg-purple-"]):not([class*="bg-pink-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-amber-"]):not([class*="bg-gradient-"]):not(.text-white-force) {
   color: #0F172A !important;
 }
 
-.light .bg-slate-850, html.light .bg-slate-850 {
+/* Light Background & Surface Overrides for Crisp Display Contrast */
+.light .bg-slate-900:not([class*="text-white-force"]):not([class*="bg-indigo-"]):not([class*="bg-purple-"]),
+html.light .bg-slate-900:not([class*="text-white-force"]):not([class*="bg-indigo-"]):not([class*="bg-purple-"]),
+.light .bg-slate-950,
+html.light .bg-slate-950 {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #0F172A !important;
+}
+
+.light .bg-slate-900\/50, html.light .bg-slate-900\/50,
+.light .bg-slate-900\/60, html.light .bg-slate-900\/60,
+.light .bg-slate-900\/80, html.light .bg-slate-900\/80 {
   background-color: #F8FAFC !important;
+  border-color: #E2E8F0 !important;
   color: #0F172A !important;
 }
 
 .light .bg-slate-800, html.light .bg-slate-800 {
-  background-color: #E2E8F0 !important;
+  background-color: #F1F5F9 !important;
+  border-color: #CBD5E1 !important;
   color: #1E293B !important;
 }
 
 .light .bg-slate-800:hover, html.light .bg-slate-800:hover {
-  background-color: #CBD5E1 !important;
+  background-color: #E2E8F0 !important;
   color: #0F172A !important;
 }
 
-/* Light Border Overrides */
+/* Light Border Overrides for Clear Visual Boundaries on Low-Contrast Displays */
 .light .border-slate-800, html.light .border-slate-800,
 .light .border-slate-700, html.light .border-slate-700 {
-  border-color: #E2E8F0 !important;
+  border-color: #CBD5E1 !important;
 }
 
-/* Specific elements that MUST keep white text */
+/* Crucial: Buttons, Chips, and Badges that MUST preserve crisp white text */
 .light .glow-btn, html.light .glow-btn,
 .light .glow-btn *, html.light .glow-btn *,
 .light .bg-mentrix-btn, html.light .bg-mentrix-btn,
 .light .bg-mentrix-btn *, html.light .bg-mentrix-btn *,
-.light .bg-indigo-600, html.light .bg-indigo-600,
-.light .bg-indigo-600 *, html.light .bg-indigo-600 *,
-.light .bg-purple-600, html.light .bg-purple-600,
-.light .bg-purple-600 *, html.light .bg-purple-600 *,
-.light .bg-pink-600, html.light .bg-pink-600,
-.light .bg-pink-600 *, html.light .bg-pink-600 *,
-.light .bg-emerald-600, html.light .bg-emerald-600,
-.light .bg-emerald-600 *, html.light .bg-emerald-600 *,
-.light .bg-red-600, html.light .bg-red-600,
-.light .bg-red-600 *, html.light .bg-red-600 *,
+.light [class*="bg-indigo-6"], html.light [class*="bg-indigo-6"],
+.light [class*="bg-indigo-6"] *, html.light [class*="bg-indigo-6"] *,
+.light [class*="bg-indigo-5"], html.light [class*="bg-indigo-5"],
+.light [class*="bg-indigo-5"] *, html.light [class*="bg-indigo-5"] *,
+.light [class*="bg-purple-6"], html.light [class*="bg-purple-6"],
+.light [class*="bg-purple-6"] *, html.light [class*="bg-purple-6"] *,
+.light [class*="bg-pink-6"], html.light [class*="bg-pink-6"],
+.light [class*="bg-pink-6"] *, html.light [class*="bg-pink-6"] *,
+.light [class*="bg-emerald-6"], html.light [class*="bg-emerald-6"],
+.light [class*="bg-emerald-6"] *, html.light [class*="bg-emerald-6"] *,
+.light [class*="bg-red-6"], html.light [class*="bg-red-6"],
+.light [class*="bg-red-6"] *, html.light [class*="bg-red-6"] *,
 .light .text-white-force, html.light .text-white-force,
 .light .text-white-force *, html.light .text-white-force * {
   color: #FFFFFF !important;

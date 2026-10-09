@@ -2,10 +2,14 @@ import { verifyJWT } from "../middlewares/auth.middleware.js"
 import { validate } from "../middlewares/validate.middlware.js"
 import { flashcardProgressValidator } from "../validators/index.js"
 import { Router } from "express"
-import { createFlashcardProgress, deleteAllFlashcardProgress, getAllFlashcardProgress, deleteFlashcardProgressById } from "../controllers/flashcardProgress.controller.js"
+import { createFlashcardProgress, deleteAllFlashcardProgress, getAllFlashcardProgress, deleteFlashcardProgressById, getFlashcardProgressBySet } from "../controllers/flashcardProgress.controller.js"
 
 
 const router: Router = Router()
+
+router
+    .route("/set/:flashcardSetId")
+    .get(verifyJWT, getFlashcardProgressBySet)
 
 router
     .route("/:flashcardId")

@@ -35,12 +35,27 @@ const createFlashcardSet: RequestHandler = asyncHandler(async (req, res) => {
             },
             select: {
                 id: true,
-                quizId: true
+                quizId: true,
+                score: true,
+                totalMarks: true,
+                percentage: true,
             }
         },
         404,
         "Quiz attempt not found."
     )
+
+    const rawPercentage = quizAttempt.percentage !== null && quizAttempt.percentage !== undefined
+        ? Number(quizAttempt.percentage)
+        : (quizAttempt.totalMarks > 0 ? (quizAttempt.score / quizAttempt.totalMarks) * 100 : 0);
+    const scorePercentage = Math.round(rawPercentage);
+
+    if (scorePercentage >= 70) {
+        throw new ApiError(
+            400,
+            `Flashcards can only be generated for low-scoring quiz attempts (< 70%). Your score was ${scorePercentage}%, which meets the mastery threshold.`
+        );
+    }
 
     const quizQuestions = await quizQuestionQuery.findMany({
         where: {
@@ -209,12 +224,16 @@ const getAllFlashcardSets: RequestHandler = asyncHandler(async (req, res) => {
         }
     )
 
+    if (!flashcardSets || flashcardSets.length === 0) {
+        throw new ApiError(404, "Flashcard sets not found.")
+    }
+
     return res
         .status(200)
         .json(
             new ApiResponse(
                 200,
-                flashcardSets || [],
+                flashcardSets,
                 "Flashcards fetched successfully."
             )
         )

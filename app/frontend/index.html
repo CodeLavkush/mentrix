@@ -11,9 +11,29 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Prevent theme flash across displays & sync system preference -->
+  <script>
+    (function() {
+      try {
+        var raw = localStorage.getItem('mentrix_persisted_state_v1');
+        var theme = 'dark';
+        if (raw) {
+          var parsed = JSON.parse(raw);
+          if (parsed && parsed.ui && parsed.ui.theme) {
+            theme = parsed.ui.theme;
+          }
+        }
+        var root = document.documentElement;
+        root.classList.remove('light', 'dark');
+        root.classList.add(theme);
+        root.setAttribute('data-theme', theme);
+        root.style.colorScheme = theme;
+      } catch (e) {}
+    })();
+  </script>
 </head>
 
-<body class="bg-[#0B1120] text-slate-100 font-inter antialiased min-h-screen">
+<body class="bg-mentrix-bg font-inter antialiased min-h-screen transition-colors duration-200">
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>

@@ -10,7 +10,7 @@ import {
   setActiveSet,
 } from '../store/slices/flashcardSlice';
 import { fetchQuizzesByDocument, fetchQuizAttempts } from '../store/slices/quizSlice';
-import type { Flashcard, Quiz } from '../store/types';
+import type { Flashcard, Quiz, QuizAttempt } from '../store/types';
 import CustomDropdown from '../components/CustomDropdown';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import {
@@ -38,8 +38,20 @@ export const FlashcardsPage: React.FC = () => {
     (state) => state.flashcard
   );
 
+  const LOW_SCORE_THRESHOLD = 70;
+
+  const getAttemptScoreDetails = (att: QuizAttempt) => {
+    const rawPct = att.percentage !== null && att.percentage !== undefined
+      ? Number(att.percentage)
+      : (att.totalMarks > 0 ? (att.score / att.totalMarks) * 100 : 0);
+    const percentage = Math.round(rawPct);
+    const isLowScore = percentage < LOW_SCORE_THRESHOLD;
+    return { percentage, isLowScore };
+  };
+
   const documentId = activeDocument?.id || '';
   const [selectedAttemptId, setSelectedAttemptId] = useState<string>('');
+  const [filterLowOnly, setFilterLowOnly] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newTopic, setNewTopic] = useState('');
@@ -68,10 +80,15 @@ export const FlashcardsPage: React.FC = () => {
     }
   }, [dispatch, quizzes]);
 
-  // Automatically select first attempt if available and not selected
+  // Automatically select first low-scoring attempt if available, else first attempt
   useEffect(() => {
     if (attempts.length > 0 && !selectedAttemptId) {
-      setSelectedAttemptId(attempts[0].id);
+      const firstLow = attempts.find((a) => getAttemptScoreDetails(a).isLowScore);
+      if (firstLow) {
+        setSelectedAttemptId(firstLow.id);
+      } else {
+        setSelectedAttemptId(attempts[0].id);
+      }
     }
   }, [attempts, selectedAttemptId]);
 
@@ -143,18 +160,24 @@ export const FlashcardsPage: React.FC = () => {
       showToast.warning('Please select a quiz attempt first to generate cards.');
       return;
     }
+    if (!isSelectedAttemptEligible) {
+      showToast.error(
+        `Flashcards can only be generated for quiz attempts scoring below 70%. Current score: ${selectedDetails?.percentage ?? 0}%.`
+      );
+      return;
+    }
     if (!newTitle.trim()) {
       showToast.warning('Please enter a title for the flashcard set.');
       return;
     }
 
-    const toastId = showToast.loading('Generating study flashcards with AI...');
+    const toastId = showToast.loading('Generating AI study flashcards for targeted revision...');
     const result = await dispatch(
       createFlashcardSet({
         quizAttemptId: selectedAttemptId,
         payload: {
           title: newTitle.trim(),
-          topic: newTopic.trim() || 'General Study',
+          topic: newTopic.trim() || 'Targeted Revision Deck',
           totalCards: Number(newTotalCards),
         },
       })
@@ -212,10 +235,26 @@ export const FlashcardsPage: React.FC = () => {
     );
   }
 
-  const attemptOptions = attempts.map((att) => ({
-    value: att.id,
-    label: `Attempt (Score: ${att.score}/${att.totalMarks} - ${new Date(att.attemptedAt || Date.now()).toLocaleDateString()})`,
-  }));
+  const selectedAttempt = attempts.find((att) => att.id === selectedAttemptId);
+  const selectedDetails = selectedAttempt ? getAttemptScoreDetails(selectedAttempt) : null;
+  const isSelectedAttemptEligible = selectedDetails ? selectedDetails.isLowScore : false;
+
+  const lowScoreAttemptsCount = attempts.filter((a) => getAttemptScoreDetails(a).isLowScore).length;
+
+  const displayedAttempts = filterLowOnly
+    ? attempts.filter((att) => getAttemptScoreDetails(att).isLowScore)
+    : attempts;
+
+  const attemptOptions = displayedAttempts.map((att) => {
+    const { percentage, isLowScore } = getAttemptScoreDetails(att);
+    const dateStr = new Date(att.attemptedAt || Date.now()).toLocaleDateString();
+    return {
+      value: att.id,
+      label: `${isLowScore ? '⚠️' : '✅'} Score: ${att.score}/${att.totalMarks} (${percentage}%) • ${
+        isLowScore ? 'Needs Revision (<70%)' : 'Mastered (≥70%)'
+      } - ${dateStr}`,
+    };
+  });
 
   const setOptions = sets.map((set) => ({
     value: set.id,
@@ -233,16 +272,18 @@ export const FlashcardsPage: React.FC = () => {
   cards.forEach((card) => {
     const prog = progressMap[card.id];
     if (prog) {
-      totalMasterySum += Number(prog.masteryLevel || 0);
-      if (Number(prog.masteryLevel || 0) >= 80) {
+      const level = Math.round(Number(prog.masteryLevel || 0));
+      const reviews = Number(prog.reviewCount || 0);
+      totalMasterySum += level;
+      if (level >= 80) {
         masteredCount += 1;
-      } else {
+      } else if (reviews > 0 || level > 0) {
         inProgressCount += 1;
       }
     }
   });
 
-  const averageMastery = totalCardsCount > 0 ? Math.round(totalMasterySum / totalCardsCount) : 0;
+  const averageMastery = totalCardsCount > 0 ? Math.min(100, Math.round(totalMasterySum / totalCardsCount)) : 0;
   const unstudiedCount = Math.max(0, totalCardsCount - masteredCount - inProgressCount);
 
   return (
@@ -258,8 +299,27 @@ export const FlashcardsPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {attempts.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setFilterLowOnly(!filterLowOnly)}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer border ${
+                filterLowOnly
+                  ? 'bg-amber-500/20 border-amber-500/50 text-amber-600 dark:text-amber-300'
+                  : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+              title="Toggle to view only quiz attempts scoring below 70%"
+            >
+              <AlertCircle className="w-3.5 h-3.5" />
+              <span>Low Score Only (&lt;70%)</span>
+              <span className="px-1.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-mono">
+                {lowScoreAttemptsCount}
+              </span>
+            </button>
+          )}
+
           {attemptOptions.length > 0 && (
-            <div className="w-60">
+            <div className="w-64">
               <CustomDropdown
                 options={attemptOptions}
                 value={selectedAttemptId}
@@ -285,8 +345,26 @@ export const FlashcardsPage: React.FC = () => {
 
           {selectedAttemptId && (
             <button
-              onClick={() => setShowCreateModal(true)}
-              className="glow-btn px-4 py-2.5 rounded-xl text-white text-xs font-semibold flex items-center space-x-1.5 cursor-pointer shadow-lg"
+              onClick={() => {
+                if (!isSelectedAttemptEligible) {
+                  showToast.error(
+                    `Only quiz attempts scoring under 70% can generate flashcards. This attempt scored ${selectedDetails?.percentage}%.`
+                  );
+                  return;
+                }
+                setShowCreateModal(true);
+              }}
+              disabled={!isSelectedAttemptEligible}
+              className={`px-4 py-2.5 rounded-xl text-white text-xs font-semibold flex items-center space-x-1.5 shadow-lg transition ${
+                isSelectedAttemptEligible
+                  ? 'glow-btn cursor-pointer'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700/60 cursor-not-allowed opacity-60'
+              }`}
+              title={
+                isSelectedAttemptEligible
+                  ? 'Generate AI flashcards for targeted revision'
+                  : `Score: ${selectedDetails?.percentage}%. Only attempts under 70% qualify for flashcard generation.`
+              }
             >
               <Plus className="w-4 h-4" />
               <span>New Set</span>
@@ -294,6 +372,73 @@ export const FlashcardsPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Low Score Eligibility & Status Banner */}
+      {selectedAttempt && !isSelectedAttemptEligible && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg animate-in fade-in duration-300">
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center flex-shrink-0 text-amber-600 dark:text-amber-400">
+              <Award className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="font-bold font-outfit text-slate-900 dark:text-white text-sm">
+                  Mastered Attempt — Score: {selectedDetails?.percentage}% (≥70%)
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-semibold border border-emerald-500/30">
+                  Mastery Achieved
+                </span>
+              </div>
+              <p className="text-slate-600 dark:text-slate-300 text-xs mt-1">
+                Flashcard deck generation is restricted to low-scoring quiz attempts (&lt; 70%) to prioritize revision on weak areas.
+                {lowScoreAttemptsCount > 0
+                  ? ` You have ${lowScoreAttemptsCount} low-scoring attempt(s) ready for card generation.`
+                  : ' All attempts for this document scored 70% or higher!'}
+              </p>
+            </div>
+          </div>
+          {lowScoreAttemptsCount > 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                const firstLow = attempts.find((a) => getAttemptScoreDetails(a).isLowScore);
+                if (firstLow) setSelectedAttemptId(firstLow.id);
+              }}
+              className="glow-btn px-3.5 py-1.5 rounded-xl text-white text-[11px] font-semibold flex items-center space-x-1.5 flex-shrink-0 cursor-pointer shadow-md"
+            >
+              <AlertCircle className="w-3.5 h-3.5" />
+              <span>Switch to Low Attempt</span>
+            </button>
+          ) : (
+            <Link
+              to="/quizzes"
+              className="glow-btn px-3.5 py-1.5 rounded-xl text-white text-[11px] font-semibold flex items-center space-x-1.5 flex-shrink-0 shadow-md"
+            >
+              <span>Take Harder Quiz</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          )}
+        </div>
+      )}
+
+      {selectedAttempt && isSelectedAttemptEligible && (
+        <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-700 dark:text-indigo-200 text-xs flex items-center justify-between gap-3 shadow-lg animate-in fade-in duration-300">
+          <div className="flex items-center space-x-2.5">
+            <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-semibold font-mono text-[10px]">
+              Score: {selectedDetails?.percentage}% (&lt; 70%)
+            </span>
+            <span>This attempt qualifies for AI flashcards to reinforce difficult concepts and weak questions.</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="glow-btn px-3 py-1 rounded-xl text-white text-[11px] font-semibold flex items-center space-x-1 flex-shrink-0 cursor-pointer shadow-md"
+          >
+            <Sparkles className="w-3 h-3 text-amber-300" />
+            <span>Generate Cards</span>
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center space-x-2">
@@ -304,15 +449,15 @@ export const FlashcardsPage: React.FC = () => {
 
       {/* Main Flashcard Interactive Area */}
       {attempts.length === 0 ? (
-        <div className="glass-panel p-12 rounded-2xl border border-slate-800 text-center space-y-4 shadow-xl">
-          <Layers className="w-14 h-14 text-indigo-400/60 mx-auto" />
-          <h3 className="text-lg font-bold font-outfit text-white">No Quiz Attempts Found</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+        <div className="glass-panel p-12 rounded-2xl border border-slate-200 dark:border-slate-800 text-center space-y-4 shadow-xl">
+          <Layers className="w-14 h-14 text-indigo-500/60 dark:text-indigo-400/60 mx-auto" />
+          <h3 className="text-lg font-bold font-outfit text-slate-900 dark:text-white">No Quiz Attempts Found</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
             Flashcards are generated from quiz questions. Take a quick practice quiz to create your study sets!
           </p>
           <Link
             to="/quizzes"
-            className="inline-flex items-center space-x-2 glow-btn px-5 py-2.5 rounded-xl text-white text-xs font-semibold cursor-pointer"
+            className="inline-flex items-center space-x-2 glow-btn px-5 py-2.5 rounded-xl text-white text-xs font-semibold cursor-pointer shadow-md"
           >
             <span>Go to Quizzes</span>
             <ArrowRight className="w-4 h-4" />
@@ -321,37 +466,71 @@ export const FlashcardsPage: React.FC = () => {
       ) : loading ? (
         <div className="text-center py-20 space-y-3">
           <div className="w-8 h-8 rounded-full border-2 border-pink-500 border-t-transparent animate-spin mx-auto" />
-          <p className="text-xs text-slate-400">Loading flashcard study cards...</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Loading flashcard study cards...</p>
         </div>
       ) : cards.length === 0 ? (
-        <div className="glass-panel p-12 rounded-2xl border border-slate-800 text-center space-y-4 shadow-xl">
-          <Sparkles className="w-12 h-12 text-pink-400 mx-auto" />
-          <h3 className="text-lg font-bold font-outfit text-white">No Flashcard Sets for this Attempt</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            Generate your first interactive flashcard deck from this quiz attempt using AI.
-          </p>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="glow-btn px-6 py-2.5 rounded-xl text-white text-xs font-semibold flex items-center space-x-2 mx-auto cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Generate Flashcard Set</span>
-          </button>
+        <div className="glass-panel p-12 rounded-2xl border border-slate-200 dark:border-slate-800 text-center space-y-4 shadow-xl">
+          {!isSelectedAttemptEligible ? (
+            <>
+              <Award className="w-14 h-14 text-emerald-500 dark:text-emerald-400 mx-auto" />
+              <h3 className="text-lg font-bold font-outfit text-slate-900 dark:text-white">
+                Attempt Mastered ({selectedDetails?.percentage ?? 0}%) — Flashcards Not Available
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                This quiz attempt scored 70% or higher. Flashcards are exclusively generated for low-scoring quiz attempts (&lt; 70%) to target areas needing reinforcement.
+              </p>
+              {lowScoreAttemptsCount > 0 ? (
+                <button
+                  onClick={() => {
+                    const firstLow = attempts.find((a) => getAttemptScoreDetails(a).isLowScore);
+                    if (firstLow) setSelectedAttemptId(firstLow.id);
+                  }}
+                  className="glow-btn px-6 py-2.5 rounded-xl text-white text-xs font-semibold flex items-center space-x-2 mx-auto cursor-pointer shadow-md"
+                >
+                  <AlertCircle className="w-4 h-4" />
+                  <span>Switch to Low Attempt ({lowScoreAttemptsCount} Available)</span>
+                </button>
+              ) : (
+                <Link
+                  to="/quizzes"
+                  className="glow-btn px-6 py-2.5 rounded-xl text-white text-xs font-semibold inline-flex items-center space-x-2 mx-auto cursor-pointer shadow-md"
+                >
+                  <span>Practice Harder Quizzes</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              )}
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-12 h-12 text-pink-500 dark:text-pink-400 mx-auto" />
+              <h3 className="text-lg font-bold font-outfit text-slate-900 dark:text-white">No Flashcard Sets for this Attempt</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                Generate your first interactive revision deck from this quiz attempt (Score: {selectedDetails?.percentage}%) using AI.
+              </p>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="glow-btn px-6 py-2.5 rounded-xl text-white text-xs font-semibold flex items-center space-x-2 mx-auto cursor-pointer shadow-md"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Generate Flashcard Set</span>
+              </button>
+            </>
+          )}
         </div>
       ) : (
         <div className="space-y-6">
           {/* Deck Progress Analytics Dashboard */}
-          <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-4 shadow-xl">
+          <div className="glass-card p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4 shadow-xl">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-xl bg-pink-500/20 text-pink-400 border border-pink-500/30 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-pink-500/10 dark:bg-pink-500/20 text-pink-600 dark:text-pink-400 border border-pink-500/30 flex items-center justify-center">
                   <TrendingUp className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold font-outfit text-white">
+                  <h3 className="text-base font-bold font-outfit text-slate-900 dark:text-white">
                     {activeSet?.title || 'Deck Progress Overview'}
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Topic: {activeSet?.topic || 'General Practice'} • {totalCardsCount} Flashcards
                   </p>
                 </div>
@@ -359,15 +538,15 @@ export const FlashcardsPage: React.FC = () => {
 
               {/* Progress Summary Badges */}
               <div className="flex flex-wrap items-center gap-3 text-xs">
-                <div className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-semibold">
+                <div className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-semibold">
                   <Award className="w-3.5 h-3.5" />
                   <span>Mastered: {masteredCount}</span>
                 </div>
-                <div className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-semibold">
+                <div className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-semibold">
                   <Target className="w-3.5 h-3.5" />
                   <span>Reviewing: {inProgressCount}</span>
                 </div>
-                <div className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 font-semibold">
+                <div className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold">
                   <span>Unstudied: {unstudiedCount}</span>
                 </div>
               </div>
@@ -376,10 +555,10 @@ export const FlashcardsPage: React.FC = () => {
             {/* Overall Mastery Progress Bar */}
             <div className="space-y-1.5 pt-1">
               <div className="flex justify-between text-xs font-semibold">
-                <span className="text-slate-300">Overall Deck Mastery</span>
-                <span className="text-pink-400 font-mono">{averageMastery}%</span>
+                <span className="text-slate-700 dark:text-slate-300">Overall Deck Mastery</span>
+                <span className="text-pink-600 dark:text-pink-400 font-mono">{averageMastery}%</span>
               </div>
-              <div className="w-full h-3 rounded-full bg-slate-900 border border-slate-800 overflow-hidden relative">
+              <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden relative">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 transition-all duration-500"
                   style={{ width: `${averageMastery}%` }}
@@ -388,23 +567,23 @@ export const FlashcardsPage: React.FC = () => {
             </div>
 
             {/* Live Session Counter */}
-            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800/80">
+            <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200 dark:border-slate-800/80">
               <div className="flex items-center space-x-4">
                 <span>
-                  Session Known: <strong className="text-emerald-400 font-semibold">+{sessionKnownCount}</strong>
+                  Session Known: <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">+{sessionKnownCount}</strong>
                 </span>
                 <span>
-                  Session Review: <strong className="text-red-400 font-semibold">+{sessionReviewCount}</strong>
+                  Session Review: <strong className="text-red-600 dark:text-red-400 font-semibold">+{sessionReviewCount}</strong>
                 </span>
               </div>
-              <span className="text-slate-500">Click any card below to jump to it directly</span>
+              <span className="text-slate-400 dark:text-slate-500">Click any card below to jump to it directly</span>
             </div>
           </div>
 
           {/* Main Flashcard Interactive Player */}
           <div className="max-w-xl mx-auto space-y-6">
             {/* Top Card Navigation Bar */}
-            <div className="flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
               <button
                 type="button"
                 onClick={() => {
@@ -412,13 +591,13 @@ export const FlashcardsPage: React.FC = () => {
                   setCurrentCardIndex((prev) => Math.max(0, prev - 1));
                 }}
                 disabled={currentCardIndex === 0}
-                className="p-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-lg disabled:opacity-30 transition cursor-pointer border border-slate-800 flex items-center space-x-1"
+                className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg disabled:opacity-30 transition cursor-pointer border border-slate-200 dark:border-slate-800 flex items-center space-x-1 shadow-sm"
               >
                 <ChevronLeft className="w-4 h-4" />
                 <span>Prev</span>
               </button>
 
-              <span className="font-semibold text-slate-200">
+              <span className="font-semibold text-slate-800 dark:text-slate-200">
                 Card {currentCardIndex + 1} of {cards.length}
               </span>
 
@@ -429,7 +608,7 @@ export const FlashcardsPage: React.FC = () => {
                   setCurrentCardIndex((prev) => Math.min(cards.length - 1, prev + 1));
                 }}
                 disabled={currentCardIndex === cards.length - 1}
-                className="p-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-lg disabled:opacity-30 transition cursor-pointer border border-slate-800 flex items-center space-x-1"
+                className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg disabled:opacity-30 transition cursor-pointer border border-slate-200 dark:border-slate-800 flex items-center space-x-1 shadow-sm"
               >
                 <span>Next</span>
                 <ChevronRight className="w-4 h-4" />
@@ -451,21 +630,21 @@ export const FlashcardsPage: React.FC = () => {
                   }}
                 >
                   {/* FRONT FACE */}
-                  <div className="backface-hidden absolute inset-0 glass-card rounded-3xl border border-indigo-500/30 p-8 flex flex-col justify-between items-center text-center shadow-2xl bg-slate-950/90 ring-1 ring-white/10 group-hover:border-indigo-500/60 overflow-hidden">
+                  <div className="backface-hidden absolute inset-0 glass-card rounded-3xl border border-indigo-500/30 p-8 flex flex-col justify-between items-center text-center shadow-2xl bg-white/95 dark:bg-slate-950/90 ring-1 ring-slate-200 dark:ring-white/10 group-hover:border-indigo-500/60 overflow-hidden">
                     {/* Ambient Top Glow */}
                     <div className="absolute top-0 left-1/4 right-1/4 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent" />
                     
                     {/* Front Header */}
-                    <div className="w-full flex items-center justify-between text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
-                      <span className="flex items-center space-x-1.5 text-indigo-400">
+                    <div className="w-full flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
+                      <span className="flex items-center space-x-1.5 text-indigo-600 dark:text-indigo-400">
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>Question / Term</span>
                       </span>
                       <div className="flex items-center space-x-2.5">
-                        <span className="px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-mono">
+                        <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-mono">
                           {currentCard.difficulty}
                         </span>
-                        <span className="flex items-center space-x-1 px-2.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-[11px] font-semibold">
+                        <span className="flex items-center space-x-1 px-2.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-600 dark:text-indigo-300 text-[11px] font-semibold">
                           <RotateCw className="w-3 h-3" />
                           <span>Click to Flip</span>
                         </span>
@@ -474,40 +653,48 @@ export const FlashcardsPage: React.FC = () => {
 
                     {/* Front Content */}
                     <div className="my-auto py-6 max-h-56 overflow-y-auto px-2">
-                      <div className="text-lg md:text-xl font-bold font-outfit text-white leading-relaxed">
+                      <div className="text-lg md:text-xl font-bold font-outfit text-slate-900 dark:text-white leading-relaxed">
                         <MarkdownRenderer content={currentCard.frontText} />
                       </div>
                     </div>
 
                     {/* Front Footer */}
-                    <div className="w-full flex items-center justify-between text-[10px] text-slate-500 uppercase tracking-widest font-mono border-t border-slate-800/80 pt-3">
+                    <div className="w-full flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-mono border-t border-slate-200 dark:border-slate-800/80 pt-3">
                       <span>Space: Flip • ←/→: Navigate</span>
-                      {progressMap[currentCard.id] && (
-                        <span className="text-indigo-400 font-semibold">
-                          Mastery: {progressMap[currentCard.id].masteryLevel}%
+                      {progressMap[currentCard.id] && Number(progressMap[currentCard.id].reviewCount || 0) > 0 ? (
+                        <span className="text-indigo-600 dark:text-indigo-400 font-semibold font-mono">
+                          Mastery: {Math.round(Number(progressMap[currentCard.id].masteryLevel || 0))}%
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 dark:text-slate-500 font-medium">
+                          Unstudied
                         </span>
                       )}
                     </div>
                   </div>
 
                   {/* BACK FACE */}
-                  <div className="backface-hidden rotate-y-180 absolute inset-0 glass-card rounded-3xl border border-emerald-500/40 p-8 flex flex-col justify-between items-center text-center shadow-2xl bg-slate-950/95 ring-1 ring-emerald-500/20 overflow-hidden">
+                  <div className="backface-hidden rotate-y-180 absolute inset-0 glass-card rounded-3xl border border-emerald-500/40 p-8 flex flex-col justify-between items-center text-center shadow-2xl bg-white/95 dark:bg-slate-950/95 ring-1 ring-emerald-500/20 overflow-hidden">
                     {/* Ambient Top Glow */}
                     <div className="absolute top-0 left-1/4 right-1/4 h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent" />
 
                     {/* Back Header */}
-                    <div className="w-full flex items-center justify-between text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
-                      <span className="flex items-center space-x-1.5 text-emerald-400">
+                    <div className="w-full flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
+                      <span className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400">
                         <CheckCircle className="w-3.5 h-3.5" />
                         <span>Answer / Concept</span>
                       </span>
                       <div className="flex items-center space-x-2.5">
-                        {progressMap[currentCard.id] && (
-                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold">
-                            {progressMap[currentCard.id].masteryLevel}% Mastered
+                        {progressMap[currentCard.id] && Number(progressMap[currentCard.id].reviewCount || 0) > 0 ? (
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-bold">
+                            {Math.round(Number(progressMap[currentCard.id].masteryLevel || 0))}% Mastered
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-[10px] font-mono font-semibold">
+                            Unstudied
                           </span>
                         )}
-                        <span className="flex items-center space-x-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold">
+                        <span className="flex items-center space-x-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-[11px] font-semibold">
                           <RotateCw className="w-3 h-3" />
                           <span>Click to Flip</span>
                         </span>
@@ -516,15 +703,15 @@ export const FlashcardsPage: React.FC = () => {
 
                     {/* Back Content */}
                     <div className="my-auto py-6 max-h-56 overflow-y-auto px-2">
-                      <div className="text-base md:text-lg font-medium font-outfit text-slate-100 leading-relaxed">
+                      <div className="text-base md:text-lg font-medium font-outfit text-slate-900 dark:text-slate-100 leading-relaxed">
                         <MarkdownRenderer content={currentCard.backText} />
                       </div>
                     </div>
 
                     {/* Back Footer */}
-                    <div className="w-full flex items-center justify-between text-[10px] text-slate-500 uppercase tracking-widest font-mono border-t border-slate-800/80 pt-3">
+                    <div className="w-full flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-mono border-t border-slate-200 dark:border-slate-800/80 pt-3">
                       <span>Reviews: {progressMap[currentCard.id]?.reviewCount || 0} • Correct: {progressMap[currentCard.id]?.correctCount || 0}</span>
-                      <span className="text-emerald-400 font-semibold">Press 1: Review • 2: Known</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Press 1: Review • 2: Known</span>
                     </div>
                   </div>
                 </div>
@@ -536,7 +723,7 @@ export const FlashcardsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleReview(false)}
-                className="flex-1 py-3.5 px-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 transition cursor-pointer shadow-lg active:scale-98"
+                className="flex-1 py-3.5 px-4 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 transition cursor-pointer shadow-lg active:scale-98"
               >
                 <XCircle className="w-4 h-4" />
                 <span>Need Review</span>
@@ -545,7 +732,7 @@ export const FlashcardsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleReview(true)}
-                className="flex-1 py-3.5 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 transition cursor-pointer shadow-lg active:scale-98"
+                className="flex-1 py-3.5 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 transition cursor-pointer shadow-lg active:scale-98"
               >
                 <CheckCircle className="w-4 h-4" />
                 <span>I Know This</span>
@@ -554,16 +741,18 @@ export const FlashcardsPage: React.FC = () => {
           </div>
 
           {/* All Cards Quick Progress Grid */}
-          <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-3 shadow-xl">
-            <h4 className="text-xs font-bold font-outfit text-white uppercase tracking-wider flex items-center space-x-2">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+          <div className="glass-card p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 shadow-xl">
+            <h4 className="text-xs font-bold font-outfit text-slate-900 dark:text-white uppercase tracking-wider flex items-center space-x-2">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
               <span>Cards in this Set ({cards.length})</span>
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               {cards.map((c, idx) => {
                 const prog = progressMap[c.id];
-                const mastery = prog ? Number(prog.masteryLevel || 0) : 0;
+                const reviews = prog ? Number(prog.reviewCount || 0) : 0;
+                const mastery = prog ? Math.round(Number(prog.masteryLevel || 0)) : 0;
+                const hasReviewed = reviews > 0;
                 const isCurrent = currentCardIndex === idx;
 
                 return (
@@ -575,25 +764,25 @@ export const FlashcardsPage: React.FC = () => {
                     }}
                     className={`p-3 rounded-xl border transition-all cursor-pointer space-y-1.5 ${
                       isCurrent
-                        ? 'bg-pink-500/20 border-pink-500 text-white shadow-lg ring-1 ring-pink-500/40'
-                        : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700'
+                        ? 'bg-pink-500/20 border-pink-500 text-slate-900 dark:text-white shadow-lg ring-1 ring-pink-500/40'
+                        : 'bg-slate-100/80 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'
                     }`}
                   >
                     <div className="flex items-center justify-between text-[11px] font-bold">
                       <span>Card #{idx + 1}</span>
                       <span
                         className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
-                          mastery >= 80
-                            ? 'bg-emerald-500/20 text-emerald-400'
-                            : mastery > 0
-                            ? 'bg-amber-500/20 text-amber-400'
-                            : 'bg-slate-800 text-slate-400'
+                          hasReviewed && mastery >= 80
+                            ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                            : hasReviewed
+                            ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                            : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                         }`}
                       >
-                        {prog ? `${mastery}%` : 'New'}
+                        {hasReviewed ? `${mastery}%` : 'New'}
                       </span>
                     </div>
-                    <p className="text-[10px] text-slate-400 line-clamp-2">{c.frontText}</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2">{c.frontText}</p>
                   </div>
                 );
               })}
@@ -604,12 +793,20 @@ export const FlashcardsPage: React.FC = () => {
 
       {/* Create Set Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-md glass-card rounded-2xl p-6 border border-slate-800 space-y-4 shadow-2xl">
-            <h3 className="text-lg font-bold font-outfit text-white">Generate AI Flashcard Set</h3>
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md glass-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="text-lg font-bold font-outfit text-slate-900 dark:text-white">Generate AI Flashcard Set</h3>
+              <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-mono text-[10px] font-semibold">
+                Score: {selectedDetails?.percentage}% (&lt;70% Revision)
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Flashcards will be generated to reinforce the questions and tricky concepts from this attempt to help you achieve mastery.
+            </p>
             <form onSubmit={handleGenerateSet} className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Set Title
                 </label>
                 <input
@@ -618,12 +815,12 @@ export const FlashcardsPage: React.FC = () => {
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   placeholder="e.g. Core Terms & Definitions"
-                  className="w-full glass-input px-3.5 py-2.5 rounded-xl text-xs"
+                  className="w-full glass-input px-3.5 py-2.5 rounded-xl text-xs text-slate-900 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Topic Description
                 </label>
                 <input
@@ -631,12 +828,12 @@ export const FlashcardsPage: React.FC = () => {
                   value={newTopic}
                   onChange={(e) => setNewTopic(e.target.value)}
                   placeholder="e.g. Chapter Summary"
-                  className="w-full glass-input px-3.5 py-2.5 rounded-xl text-xs"
+                  className="w-full glass-input px-3.5 py-2.5 rounded-xl text-xs text-slate-900 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Card Count
                 </label>
                 <CustomDropdown
@@ -650,14 +847,14 @@ export const FlashcardsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs cursor-pointer"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs cursor-pointer border border-slate-200 dark:border-slate-700"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={generating || !newTitle.trim()}
-                  className="glow-btn px-5 py-2 rounded-xl text-white text-xs font-semibold cursor-pointer disabled:opacity-50"
+                  className="glow-btn px-5 py-2 rounded-xl text-white text-xs font-semibold cursor-pointer disabled:opacity-50 shadow-md"
                 >
                   {generating ? 'Generating...' : 'Generate Deck'}
                 </button>
